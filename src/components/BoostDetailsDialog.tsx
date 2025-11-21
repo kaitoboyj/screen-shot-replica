@@ -76,7 +76,7 @@ export const BoostDetailsDialog = ({
 
         {/* Choose another pack button */}
         <DialogClose asChild>
-          <button className="flex items-center gap-2 text-foreground hover:text-golden transition-colors mx-auto mb-6">
+          <button className="flex items-center gap-2 text-foreground hover:text-golden transition-colors mx-auto mb-6 focus:outline-none">
             <ChevronLeft className="w-4 h-4" />
             <span>Choose another pack</span>
           </button>
@@ -88,8 +88,8 @@ export const BoostDetailsDialog = ({
             <div className="w-12 h-12 rounded-full bg-green-600 flex items-center justify-center">
               <Check className="w-6 h-6 text-white" />
             </div>
-            <h3 className="text-xl font-bold text-foreground">Trending Boost</h3>
-            <p className="text-muted-foreground">
+            <h3 className="text-xl font-bold text-white">Trending Boost</h3>
+            <p className="text-white">
               This pack will boost this token's Trending Score
             </p>
           </div>
@@ -97,8 +97,8 @@ export const BoostDetailsDialog = ({
             <div className="w-12 h-12 rounded-full bg-green-600 flex items-center justify-center">
               <Check className="w-6 h-6 text-white" />
             </div>
-            <h3 className="text-xl font-bold text-foreground">Golden Ticker</h3>
-            <p className="text-muted-foreground">
+            <h3 className="text-xl font-bold text-white">Golden Ticker</h3>
+            <p className="text-white">
               This pack will unlock the Golden Ticker
             </p>
           </div>
