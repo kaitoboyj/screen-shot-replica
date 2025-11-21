@@ -3,14 +3,6 @@ import { X, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BoostCard } from "@/components/BoostCard";
 import { TokenSelector } from "@/components/TokenSelector";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import backgroundImage from "@/assets/background.png";
 
 const Index = () => {
@@ -55,36 +47,29 @@ const Index = () => {
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground">
               Showcase your support, boost{" "}
-              <span className="underline decoration-golden">Trending Score</span> and
+              <a 
+                href="https://docs.dexscreener.com/trending" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="underline decoration-golden hover:text-golden transition-colors cursor-pointer"
+              >
+                Trending Score
+              </a> and
               unlock the <span className="text-golden font-semibold">Golden Ticker</span>!
             </p>
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button
-                  variant="secondary"
-                  className="mt-4 rounded-full px-6 py-5 text-base"
-                >
-                  <HelpCircle className="w-5 h-5 mr-2" />
-                  How does it work?
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="bg-card border-border">
-                <DialogHeader>
-                  <DialogTitle className="text-golden text-2xl">How does it work?</DialogTitle>
-                  <DialogDescription className="text-foreground text-base space-y-3 pt-4">
-                    <p>
-                      Choose a boost pack to increase the token's Trending Score and visibility.
-                    </p>
-                    <p>
-                      Each boost multiplier increases the score for the specified duration.
-                    </p>
-                    <p>
-                      Accumulate 500 boosts to unlock the exclusive <span className="text-golden font-semibold">Golden Ticker</span> status!
-                    </p>
-                  </DialogDescription>
-                </DialogHeader>
-              </DialogContent>
-            </Dialog>
+            <Button
+              asChild
+              className="mt-4 rounded-full px-6 py-5 text-base bg-white text-black hover:bg-white/90"
+            >
+              <a 
+                href="https://docs.dexscreener.com/boosting" 
+                target="_blank" 
+                rel="noopener noreferrer"
+              >
+                <HelpCircle className="w-5 h-5 mr-2" />
+                How does it work?
+              </a>
+            </Button>
           </div>
 
           {/* Divider */}
