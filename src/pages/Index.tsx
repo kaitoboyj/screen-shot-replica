@@ -45,28 +45,29 @@ const Index = () => {
                 <span className="text-golden">Boost</span>
               </span>
             </h1>
-            <p className="text-lg md:text-xl text-muted-foreground">
+            <p className="text-lg md:text-xl text-white font-medium">
               Showcase your support, boost{" "}
               <a 
                 href="https://docs.dexscreener.com/trending" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="underline decoration-golden hover:text-golden transition-colors cursor-pointer"
+                className="underline decoration-white underline-offset-2 hover:text-golden transition-colors cursor-pointer"
               >
                 Trending Score
-              </a> and
-              unlock the <span className="text-golden font-semibold">Golden Ticker</span>!
+              </a>{" "}
+              and unlock the <span className="text-golden font-semibold">Golden Ticker</span>!
             </p>
             <Button
               asChild
-              className="mt-4 rounded-full px-6 py-5 text-base bg-white text-black hover:bg-white/90"
+              className="mt-4 rounded-lg px-6 py-3 text-base font-medium bg-white text-black hover:bg-white/90"
             >
               <a 
                 href="https://docs.dexscreener.com/boosting" 
                 target="_blank" 
                 rel="noopener noreferrer"
+                className="flex items-center gap-2"
               >
-                <HelpCircle className="w-5 h-5 mr-2" />
+                <HelpCircle className="w-5 h-5" />
                 How does it work?
               </a>
             </Button>
