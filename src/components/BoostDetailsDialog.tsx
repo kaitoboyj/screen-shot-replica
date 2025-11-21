@@ -7,6 +7,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { HelpCircle } from "lucide-react";
+import backgroundImage from "@/assets/background.png";
 
 interface BoostDetailsDialogProps {
   open: boolean;
@@ -25,7 +26,10 @@ export const BoostDetailsDialog = ({
 }: BoostDetailsDialogProps) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl bg-background border-border p-8">
+      <DialogContent 
+        className="max-w-4xl border-border p-8 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: `url(${backgroundImage})` }}
+      >
         {/* Header */}
         <div className="text-center space-y-4 mb-8">
           <h1 className="text-4xl md:text-5xl font-bold">
