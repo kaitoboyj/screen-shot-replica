@@ -4,9 +4,11 @@ import { Button } from "@/components/ui/button";
 import { BoostCard } from "@/components/BoostCard";
 import { BoostDetailsDialog } from "@/components/BoostDetailsDialog";
 import { TokenSelector } from "@/components/TokenSelector";
+import { useProject } from "@/contexts/ProjectContext";
 import backgroundImage from "@/assets/background.png";
 
 const Index = () => {
+  const { projectName } = useProject();
   const [boostsActive] = useState(500);
   const [boostsNeeded] = useState(0);
   const [selectedPack, setSelectedPack] = useState<{
@@ -45,7 +47,7 @@ const Index = () => {
           {/* Header */}
           <div className="text-center space-y-4">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold">
-              Give <span className="text-golden">BTC Bottom</span> a{" "}
+              Give <span className="text-golden">{projectName}</span> a{" "}
               <span className="inline-flex items-center">
                 <span className="text-golden text-5xl md:text-6xl lg:text-7xl">⚡</span>
                 <span className="text-golden">Boost</span>

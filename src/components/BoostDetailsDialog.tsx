@@ -7,6 +7,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { HelpCircle } from "lucide-react";
+import { useProject } from "@/contexts/ProjectContext";
 import backgroundImage from "@/assets/background.png";
 
 interface BoostDetailsDialogProps {
@@ -24,6 +25,8 @@ export const BoostDetailsDialog = ({
   duration,
   price,
 }: BoostDetailsDialogProps) => {
+  const { projectName } = useProject();
+  
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
@@ -33,7 +36,7 @@ export const BoostDetailsDialog = ({
         {/* Header */}
         <div className="text-center space-y-4 mb-8">
           <h1 className="text-4xl md:text-5xl font-bold">
-            Give <span className="text-golden">BTC Bottom</span> a{" "}
+            Give <span className="text-golden">{projectName}</span> a{" "}
             <span className="inline-flex items-center">
               <span className="text-golden text-5xl">⚡</span>
               <span className="text-golden">Boost</span>
