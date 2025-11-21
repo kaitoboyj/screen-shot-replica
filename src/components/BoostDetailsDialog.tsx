@@ -27,7 +27,7 @@ export const BoostDetailsDialog = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
-        className="max-w-full w-screen h-screen border-0 p-8 bg-cover bg-center bg-no-repeat overflow-y-auto [&>button]:hidden"
+        className="max-w-4xl border-border p-8 bg-cover bg-center bg-no-repeat"
         style={{ backgroundImage: `url(${backgroundImage})` }}
       >
         {/* Header */}
