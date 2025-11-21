@@ -2,6 +2,10 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useProject } from "@/contexts/ProjectContext";
 import backgroundImage from "@/assets/background.png";
+import solanaLogo from "@/assets/solana-logo.png";
+import ethereumLogo from "@/assets/ethereum-logo.png";
+import polygonLogo from "@/assets/polygon-logo.png";
+import baseLogo from "@/assets/base-logo.png";
 import { X } from "lucide-react";
 
 const Payment = () => {
@@ -10,12 +14,12 @@ const Payment = () => {
   const { network } = useProject();
   const { price } = location.state || { price: "$0" };
 
-  // Network options with their respective icons
+  // Network options with their respective logos
   const networks = [
-    { name: "Solana", id: "solana", icon: "◎" },
-    { name: "Ethereum", id: "ethereum", icon: "Ξ" },
-    { name: "Polygon", id: "polygon", icon: "⬡" },
-    { name: "Base", id: "base", icon: "⬢" },
+    { name: "Solana", id: "solana", logo: solanaLogo },
+    { name: "Ethereum", id: "ethereum", logo: ethereumLogo },
+    { name: "Polygon", id: "polygon", logo: polygonLogo },
+    { name: "Base", id: "base", logo: baseLogo },
   ];
 
   // Determine selected network based on API data
@@ -47,8 +51,8 @@ const Payment = () => {
         <div className="bg-black/90 rounded-2xl p-8 border border-border space-y-6">
           {/* Header */}
           <div className="flex items-center gap-3 pb-4 border-b border-border">
-            <div className="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center">
-              <span className="text-white text-xl">{selectedNetwork.icon}</span>
+            <div className="w-10 h-10 rounded-full overflow-hidden">
+              <img src={selectedNetwork.logo} alt={selectedNetwork.name} className="w-full h-full object-cover" />
             </div>
             <h2 className="text-2xl font-bold text-white">Pay with {selectedNetwork.name.toUpperCase()}</h2>
           </div>
@@ -58,8 +62,8 @@ const Payment = () => {
             <span className="text-white text-lg">
               Total price: <span className="font-bold">{cryptoPrice} {selectedNetwork.name.toUpperCase()} ({price} USDC)</span>
             </span>
-            <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center">
-              <span className="text-white text-sm">{selectedNetwork.icon}</span>
+            <div className="w-8 h-8 rounded-full overflow-hidden">
+              <img src={selectedNetwork.logo} alt={selectedNetwork.name} className="w-full h-full object-cover" />
             </div>
           </div>
 
@@ -76,7 +80,9 @@ const Payment = () => {
                       : "bg-transparent border-border text-muted-foreground hover:border-purple-600/50"
                   }`}
                 >
-                  <span className="text-lg">{net.icon}</span>
+                  <div className="w-5 h-5 rounded-full overflow-hidden">
+                    <img src={net.logo} alt={net.name} className="w-full h-full object-cover" />
+                  </div>
                   <span className="font-medium">{net.name}</span>
                 </button>
               ))}
@@ -91,8 +97,8 @@ const Payment = () => {
                 {cryptoPrice} {selectedNetwork.name.toUpperCase()} ({selectedNetwork.name})
               </span>
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full bg-purple-600 flex items-center justify-center">
-                  <span className="text-white text-xs">{selectedNetwork.icon}</span>
+                <div className="w-6 h-6 rounded-full overflow-hidden">
+                  <img src={selectedNetwork.logo} alt={selectedNetwork.name} className="w-full h-full object-cover" />
                 </div>
                 <span className="text-white">▼</span>
               </div>
