@@ -11,7 +11,7 @@ const ContractInput = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { setProjectName, setContractAddress: setGlobalContractAddress } = useProject();
+  const { setProjectName, setContractAddress: setGlobalContractAddress, setLogoUrl } = useProject();
 
   const fetchProjectName = async () => {
     if (!contractAddress.trim()) {
@@ -30,8 +30,10 @@ const ContractInput = () => {
       
       if (data.pairs && data.pairs.length > 0) {
         const projectName = data.pairs[0].baseToken.name;
+        const logoUrl = data.pairs[0].info?.imageUrl || '';
         setProjectName(projectName);
         setGlobalContractAddress(contractAddress);
+        setLogoUrl(logoUrl);
         navigate('/boost');
       } else {
         toast({

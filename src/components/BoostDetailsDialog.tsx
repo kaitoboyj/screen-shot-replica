@@ -130,9 +130,11 @@ export const BoostDetailsDialog = ({
         </div>
 
         {/* Proceed button */}
-        <Button className="w-full max-w-md mx-auto bg-blue-600 hover:bg-blue-700 text-white text-lg py-6 rounded-lg">
-          Proceed to Payment →
-        </Button>
+        <div className="flex justify-center">
+          <Button className="w-full max-w-md bg-blue-600 hover:bg-blue-700 text-white text-lg py-6 rounded-lg">
+            Proceed to Payment →
+          </Button>
+        </div>
         </div>
       </DialogContent>
     </Dialog>

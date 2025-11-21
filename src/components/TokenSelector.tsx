@@ -1,4 +1,5 @@
 import { Card } from "@/components/ui/card";
+import { useProject } from "@/contexts/ProjectContext";
 
 interface TokenSelectorProps {
   tokens: Array<{
@@ -9,6 +10,7 @@ interface TokenSelectorProps {
 }
 
 export const TokenSelector = ({ tokens }: TokenSelectorProps) => {
+  const { projectName, logoUrl } = useProject();
   return (
     <div className="w-full max-w-md mx-auto space-y-3">
       {tokens.map((token, index) => (
@@ -21,11 +23,15 @@ export const TokenSelector = ({ tokens }: TokenSelectorProps) => {
           }`}
         >
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-golden flex items-center justify-center text-black font-bold">
-              {token.selected ? "◉" : "○"}
-            </div>
+            {token.selected && logoUrl ? (
+              <img src={logoUrl} alt={projectName} className="w-8 h-8 rounded-full object-cover" />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-golden flex items-center justify-center text-black font-bold">
+                ○
+              </div>
+            )}
             <div className="flex items-center gap-2">
-              <span className="text-golden font-bold text-lg">{token.name}</span>
+              <span className="text-golden font-bold text-lg">{token.selected ? projectName : token.name}</span>
               <span className="text-muted-foreground">/ {token.symbol}</span>
             </div>
           </div>
