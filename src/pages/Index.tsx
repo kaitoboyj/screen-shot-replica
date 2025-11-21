@@ -11,6 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import backgroundImage from "@/assets/background.png";
 
 const Index = () => {
   const [boostsActive] = useState(500);
@@ -31,7 +32,10 @@ const Index = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-4">
+    <div 
+      className="min-h-screen bg-background text-foreground flex items-center justify-center p-4 bg-cover bg-center bg-no-repeat"
+      style={{ backgroundImage: `url(${backgroundImage})` }}
+    >
       <div className="w-full max-w-6xl mx-auto relative">
         {/* Close Button */}
         <button className="absolute -top-4 -right-4 md:top-4 md:right-4 w-12 h-12 rounded-lg bg-card-dark border border-border hover:border-golden transition-colors flex items-center justify-center z-10">
