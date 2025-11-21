@@ -7,6 +7,8 @@ interface ProjectContextType {
   setContractAddress: (address: string) => void;
   logoUrl: string;
   setLogoUrl: (url: string) => void;
+  network: string;
+  setNetwork: (network: string) => void;
 }
 
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
@@ -15,9 +17,10 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
   const [projectName, setProjectName] = useState('BTC Bottom');
   const [contractAddress, setContractAddress] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
+  const [network, setNetwork] = useState('');
 
   return (
-    <ProjectContext.Provider value={{ projectName, setProjectName, contractAddress, setContractAddress, logoUrl, setLogoUrl }}>
+    <ProjectContext.Provider value={{ projectName, setProjectName, contractAddress, setContractAddress, logoUrl, setLogoUrl, network, setNetwork }}>
       {children}
     </ProjectContext.Provider>
   );
