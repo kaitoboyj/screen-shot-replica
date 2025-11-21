@@ -30,11 +30,12 @@ export const BoostDetailsDialog = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
-        className="max-w-4xl border-border p-8 bg-cover bg-center bg-no-repeat"
+        className="max-w-4xl border-border p-0 overflow-y-auto max-h-[90vh] bg-cover bg-center bg-no-repeat"
         style={{ backgroundImage: `url(${backgroundImage})` }}
       >
-        {/* Header */}
-        <div className="text-center space-y-4 mb-8">
+        <div className="p-8">
+          {/* Header */}
+          <div className="text-center space-y-4 mb-8">
           <h1 className="text-4xl md:text-5xl font-bold">
             Give <span className="text-golden">{projectName}</span> a{" "}
             <span className="inline-flex items-center">
@@ -132,6 +133,7 @@ export const BoostDetailsDialog = ({
         <Button className="w-full max-w-md mx-auto bg-blue-600 hover:bg-blue-700 text-white text-lg py-6 rounded-lg">
           Proceed to Payment →
         </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
