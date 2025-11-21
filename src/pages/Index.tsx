@@ -2,12 +2,18 @@ import { useState } from "react";
 import { X, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BoostCard } from "@/components/BoostCard";
+import { BoostDetailsDialog } from "@/components/BoostDetailsDialog";
 import { TokenSelector } from "@/components/TokenSelector";
 import backgroundImage from "@/assets/background.png";
 
 const Index = () => {
   const [boostsActive] = useState(500);
   const [boostsNeeded] = useState(0);
+  const [selectedPack, setSelectedPack] = useState<{
+    multiplier: string;
+    duration: string;
+    price: string;
+  } | null>(null);
 
   const boostPacks = [
     { multiplier: "10x", duration: "12 hours", price: "$99" },
@@ -88,6 +94,7 @@ const Index = () => {
                   multiplier={pack.multiplier}
                   duration={pack.duration}
                   price={pack.price}
+                  onClick={() => setSelectedPack(pack)}
                 />
               ))}
             </div>
@@ -108,6 +115,15 @@ const Index = () => {
             Boosts needed: <span className="text-foreground font-semibold">{boostsNeeded}</span>
           </div>
         </div>
+
+        {/* Boost Details Dialog */}
+        <BoostDetailsDialog
+          open={selectedPack !== null}
+          onOpenChange={(open) => !open && setSelectedPack(null)}
+          multiplier={selectedPack?.multiplier || ""}
+          duration={selectedPack?.duration || ""}
+          price={selectedPack?.price || ""}
+        />
       </div>
     </div>
   );
