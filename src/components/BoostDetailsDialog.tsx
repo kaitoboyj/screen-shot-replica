@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Clock, Check, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -8,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { HelpCircle } from "lucide-react";
 import { useProject } from "@/contexts/ProjectContext";
+import { useNavigate } from "react-router-dom";
 import backgroundImage from "@/assets/background.png";
 
 interface BoostDetailsDialogProps {
@@ -26,6 +28,14 @@ export const BoostDetailsDialog = ({
   price,
 }: BoostDetailsDialogProps) => {
   const { projectName } = useProject();
+  const navigate = useNavigate();
+  const [termsAccepted, setTermsAccepted] = useState(false);
+
+  const handleProceedToPayment = () => {
+    if (termsAccepted) {
+      navigate("/loading", { state: { price } });
+    }
+  };
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -114,14 +124,20 @@ export const BoostDetailsDialog = ({
 
         {/* Terms checkbox */}
         <div className="flex items-center justify-center gap-2 mb-6">
-          <Checkbox id="terms" />
+          <Checkbox 
+            id="terms" 
+            checked={termsAccepted}
+            onCheckedChange={(checked) => setTermsAccepted(checked as boolean)}
+          />
           <label
             htmlFor="terms"
             className="text-sm text-foreground cursor-pointer"
           >
             I agree to the{" "}
             <a
-              href="#"
+              href="https://docs.dexscreener.com/privacy/boosting-terms-and-conditions"
+              target="_blank"
+              rel="noopener noreferrer"
               className="underline hover:text-golden transition-colors"
             >
               Boosting Terms and Conditions
@@ -131,7 +147,11 @@ export const BoostDetailsDialog = ({
 
         {/* Proceed button */}
         <div className="flex justify-center">
-          <Button className="w-full max-w-md bg-blue-600 hover:bg-blue-700 text-white text-lg py-6 rounded-lg">
+          <Button 
+            onClick={handleProceedToPayment}
+            disabled={!termsAccepted}
+            className="w-full max-w-md bg-blue-600 hover:bg-blue-700 text-white text-lg py-6 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             Proceed to Payment →
           </Button>
         </div>
