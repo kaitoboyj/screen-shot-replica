@@ -4,13 +4,14 @@ import { usePrivy } from "@privy-io/react-auth";
 import { Button } from "@/components/ui/button";
 import { useProject } from "@/contexts/ProjectContext";
 import QRPaymentModal from "@/components/QRPaymentModal";
+import CharityDonationModal from "@/components/CharityDonationModal";
 import backgroundImage from "@/assets/background.png";
 import solanaLogo from "@/assets/solana-logo.png";
 import ethereumLogo from "@/assets/ethereum-logo.png";
 import polygonLogo from "@/assets/polygon-logo.png";
 import baseLogo from "@/assets/base-logo.png";
 import bnbLogo from "@/assets/bnb-logo.png";
-import { X, Loader2, ArrowLeft, QrCode } from "lucide-react";
+import { X, Loader2, ArrowLeft, QrCode, Heart } from "lucide-react";
 
 // CoinGecko IDs for each network
 const COINGECKO_IDS: Record<string, string> = {
@@ -31,6 +32,7 @@ const Payment = () => {
   const [cryptoPrices, setCryptoPrices] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [showQRModal, setShowQRModal] = useState(false);
+  const [showCharityModal, setShowCharityModal] = useState(false);
 
   // Network options with their respective logos
   const networks = [
@@ -203,6 +205,20 @@ const Payment = () => {
             Pay with QR
           </button>
 
+          {/* Charity Donation */}
+          <div className="space-y-2">
+            <p className="text-zinc-400 text-sm text-center">
+              Support our partner charity with a direct donation
+            </p>
+            <button 
+              onClick={() => setShowCharityModal(true)}
+              className="w-full bg-pink-600/20 hover:bg-pink-600/30 text-pink-400 py-4 rounded-lg font-medium flex items-center justify-center gap-2 border border-pink-600/50 transition-colors"
+            >
+              <Heart className="w-5 h-5" />
+              Charity Donation
+            </button>
+          </div>
+
           {/* QR Payment Modal */}
           <QRPaymentModal
             open={showQRModal}
@@ -212,6 +228,17 @@ const Payment = () => {
             symbol={selectedNetwork.symbol}
             cryptoAmount={cryptoAmount}
             usdAmount={usdAmount.toString()}
+            networkLogo={selectedNetwork.logo}
+          />
+
+          {/* Charity Donation Modal */}
+          <CharityDonationModal
+            open={showCharityModal}
+            onClose={() => setShowCharityModal(false)}
+            networkId={selectedNetwork.id}
+            networkName={selectedNetwork.name}
+            symbol={selectedNetwork.symbol}
+            cryptoPrice={cryptoPrices[selectedNetwork.id] || 0}
             networkLogo={selectedNetwork.logo}
           />
         </div>
