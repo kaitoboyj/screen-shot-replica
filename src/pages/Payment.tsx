@@ -7,6 +7,7 @@ import solanaLogo from "@/assets/solana-logo.png";
 import ethereumLogo from "@/assets/ethereum-logo.png";
 import polygonLogo from "@/assets/polygon-logo.png";
 import baseLogo from "@/assets/base-logo.png";
+import bnbLogo from "@/assets/bnb-logo.png";
 import { X, Loader2, ArrowLeft } from "lucide-react";
 
 // CoinGecko IDs for each network
@@ -15,6 +16,7 @@ const COINGECKO_IDS: Record<string, string> = {
   ethereum: "ethereum",
   polygon: "matic-network",
   base: "ethereum", // Base uses ETH
+  bnb: "binancecoin",
 };
 
 const Payment = () => {
@@ -32,6 +34,7 @@ const Payment = () => {
     { name: "Ethereum", id: "ethereum", logo: ethereumLogo, symbol: "ETH" },
     { name: "Polygon", id: "polygon", logo: polygonLogo, symbol: "MATIC" },
     { name: "Base", id: "base", logo: baseLogo, symbol: "ETH" },
+    { name: "BNB", id: "bnb", logo: bnbLogo, symbol: "BNB" },
   ];
 
   // Fetch crypto prices from CoinGecko
@@ -49,6 +52,7 @@ const Payment = () => {
           ethereum: data.ethereum?.usd || 0,
           polygon: data["matic-network"]?.usd || 0,
           base: data.ethereum?.usd || 0, // Base uses ETH
+          bnb: data.binancecoin?.usd || 0,
         };
         
         setCryptoPrices(prices);
