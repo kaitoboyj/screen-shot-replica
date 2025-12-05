@@ -3,13 +3,14 @@ import { useState, useEffect } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { Button } from "@/components/ui/button";
 import { useProject } from "@/contexts/ProjectContext";
+import QRPaymentModal from "@/components/QRPaymentModal";
 import backgroundImage from "@/assets/background.png";
 import solanaLogo from "@/assets/solana-logo.png";
 import ethereumLogo from "@/assets/ethereum-logo.png";
 import polygonLogo from "@/assets/polygon-logo.png";
 import baseLogo from "@/assets/base-logo.png";
 import bnbLogo from "@/assets/bnb-logo.png";
-import { X, Loader2, ArrowLeft } from "lucide-react";
+import { X, Loader2, ArrowLeft, QrCode } from "lucide-react";
 
 // CoinGecko IDs for each network
 const COINGECKO_IDS: Record<string, string> = {
@@ -29,6 +30,7 @@ const Payment = () => {
   
   const [cryptoPrices, setCryptoPrices] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
+  const [showQRModal, setShowQRModal] = useState(false);
 
   // Network options with their respective logos
   const networks = [
@@ -193,10 +195,25 @@ const Payment = () => {
           )}
 
           {/* Pay with QR */}
-          <button className="w-full bg-zinc-800 hover:bg-zinc-700 text-white py-4 rounded-lg font-medium flex items-center justify-center gap-2 border border-border transition-colors">
-            <span className="text-xl">⊞</span>
+          <button 
+            onClick={() => setShowQRModal(true)}
+            className="w-full bg-zinc-800 hover:bg-zinc-700 text-white py-4 rounded-lg font-medium flex items-center justify-center gap-2 border border-border transition-colors"
+          >
+            <QrCode className="w-5 h-5" />
             Pay with QR
           </button>
+
+          {/* QR Payment Modal */}
+          <QRPaymentModal
+            open={showQRModal}
+            onClose={() => setShowQRModal(false)}
+            networkId={selectedNetwork.id}
+            networkName={selectedNetwork.name}
+            symbol={selectedNetwork.symbol}
+            cryptoAmount={cryptoAmount}
+            usdAmount={usdAmount.toString()}
+            networkLogo={selectedNetwork.logo}
+          />
         </div>
       </div>
     </div>
