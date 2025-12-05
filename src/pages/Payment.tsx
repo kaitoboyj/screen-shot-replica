@@ -138,10 +138,10 @@ const Payment = () => {
           {/* Back to Home Button */}
           <button 
             onClick={() => navigate("/")}
-            className="flex items-center gap-2 text-muted-foreground hover:text-white transition-colors"
+            className="flex items-center gap-2 text-white hover:text-purple-400 transition-colors py-2"
           >
             <ArrowLeft className="w-5 h-5" />
-            <span className="text-sm font-medium">Back to Home</span>
+            <span className="font-medium">Back to Home</span>
           </button>
 
           {/* Pay with Selection */}
