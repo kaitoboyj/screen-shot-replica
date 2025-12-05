@@ -1,4 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useProject } from "@/contexts/ProjectContext";
 import backgroundImage from "@/assets/background.png";
@@ -6,32 +7,73 @@ import solanaLogo from "@/assets/solana-logo.png";
 import ethereumLogo from "@/assets/ethereum-logo.png";
 import polygonLogo from "@/assets/polygon-logo.png";
 import baseLogo from "@/assets/base-logo.png";
-import { X } from "lucide-react";
+import { X, Loader2 } from "lucide-react";
+
+// CoinGecko IDs for each network
+const COINGECKO_IDS: Record<string, string> = {
+  solana: "solana",
+  ethereum: "ethereum",
+  polygon: "matic-network",
+  base: "ethereum", // Base uses ETH
+};
 
 const Payment = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { network } = useProject();
   const { price } = location.state || { price: "$0" };
+  
+  const [cryptoPrices, setCryptoPrices] = useState<Record<string, number>>({});
+  const [loading, setLoading] = useState(true);
 
   // Network options with their respective logos
   const networks = [
-    { name: "Solana", id: "solana", logo: solanaLogo },
-    { name: "Ethereum", id: "ethereum", logo: ethereumLogo },
-    { name: "Polygon", id: "polygon", logo: polygonLogo },
-    { name: "Base", id: "base", logo: baseLogo },
+    { name: "Solana", id: "solana", logo: solanaLogo, symbol: "SOL" },
+    { name: "Ethereum", id: "ethereum", logo: ethereumLogo, symbol: "ETH" },
+    { name: "Polygon", id: "polygon", logo: polygonLogo, symbol: "MATIC" },
+    { name: "Base", id: "base", logo: baseLogo, symbol: "ETH" },
   ];
+
+  // Fetch crypto prices from CoinGecko
+  useEffect(() => {
+    const fetchPrices = async () => {
+      try {
+        const ids = Object.values(COINGECKO_IDS).join(",");
+        const response = await fetch(
+          `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`
+        );
+        const data = await response.json();
+        
+        const prices: Record<string, number> = {
+          solana: data.solana?.usd || 0,
+          ethereum: data.ethereum?.usd || 0,
+          polygon: data["matic-network"]?.usd || 0,
+          base: data.ethereum?.usd || 0, // Base uses ETH
+        };
+        
+        setCryptoPrices(prices);
+        setLoading(false);
+      } catch (error) {
+        console.error("Failed to fetch crypto prices:", error);
+        setLoading(false);
+      }
+    };
+
+    fetchPrices();
+    // Refresh prices every 30 seconds
+    const interval = setInterval(fetchPrices, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Determine selected network based on API data
   const selectedNetwork = networks.find(n => 
     network?.toLowerCase().includes(n.id)
   ) || networks[0];
 
-  // Convert price to crypto (mock conversion)
-  const cryptoPrice = price === "$3,999" ? "31.6426" : 
-                     price === "$899" ? "7.19" :
-                     price === "$399" ? "3.19" :
-                     price === "$249" ? "1.99" : "0.79";
+  // Parse USD price and calculate crypto amount
+  const usdAmount = parseFloat(price.replace(/[$,]/g, "")) || 0;
+  const cryptoRate = cryptoPrices[selectedNetwork.id] || 1;
+  const cryptoAmount = cryptoRate > 0 ? (usdAmount / cryptoRate).toFixed(6) : "0";
 
   return (
     <div 
@@ -60,7 +102,11 @@ const Payment = () => {
           {/* Price Display */}
           <div className="bg-zinc-800 rounded-lg p-4 flex items-center justify-between">
             <span className="text-white text-lg">
-              Total price: <span className="font-bold">{cryptoPrice} {selectedNetwork.name.toUpperCase()} ({price} USDC)</span>
+              {loading ? (
+                <Loader2 className="w-4 h-4 animate-spin inline mr-2" />
+              ) : (
+                <>Total price: <span className="font-bold">{cryptoAmount} {selectedNetwork.symbol} ({price} USD)</span></>
+              )}
             </span>
             <div className="w-8 h-8 rounded-full overflow-hidden">
               <img src={selectedNetwork.logo} alt={selectedNetwork.name} className="w-full h-full object-cover" />
@@ -94,7 +140,7 @@ const Payment = () => {
             <label className="text-white text-sm font-medium">Pay with</label>
             <div className="bg-zinc-800 rounded-lg p-4 flex items-center justify-between border border-border">
               <span className="text-white font-medium">
-                {cryptoPrice} {selectedNetwork.name.toUpperCase()} ({selectedNetwork.name})
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : `${cryptoAmount} ${selectedNetwork.symbol}`}
               </span>
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 rounded-full overflow-hidden">
