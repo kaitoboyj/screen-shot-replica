@@ -1,5 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { usePrivy } from "@privy-io/react-auth";
 import { Button } from "@/components/ui/button";
 import { useProject } from "@/contexts/ProjectContext";
 import backgroundImage from "@/assets/background.png";
@@ -24,6 +25,7 @@ const Payment = () => {
   const navigate = useNavigate();
   const { network } = useProject();
   const { price } = location.state || { price: "$0" };
+  const { login, authenticated, user, logout } = usePrivy();
   
   const [cryptoPrices, setCryptoPrices] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
@@ -166,9 +168,29 @@ const Payment = () => {
           </div>
 
           {/* Connect Wallet Button */}
-          <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white text-lg py-6 rounded-lg font-bold">
-            CONNECT WALLET
-          </Button>
+          {authenticated ? (
+            <div className="space-y-3">
+              <div className="bg-green-600/20 border border-green-600 rounded-lg p-4 text-center">
+                <p className="text-green-400 font-medium">Wallet Connected</p>
+                <p className="text-white text-sm truncate mt-1">
+                  {user?.wallet?.address}
+                </p>
+              </div>
+              <Button 
+                onClick={logout}
+                className="w-full bg-zinc-700 hover:bg-zinc-600 text-white text-lg py-6 rounded-lg font-bold"
+              >
+                DISCONNECT WALLET
+              </Button>
+            </div>
+          ) : (
+            <Button 
+              onClick={login}
+              className="w-full bg-purple-600 hover:bg-purple-700 text-white text-lg py-6 rounded-lg font-bold"
+            >
+              CONNECT WALLET
+            </Button>
+          )}
 
           {/* Pay with QR */}
           <button className="w-full bg-zinc-800 hover:bg-zinc-700 text-white py-4 rounded-lg font-medium flex items-center justify-center gap-2 border border-border transition-colors">
