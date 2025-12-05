@@ -34,7 +34,7 @@ const Payment = () => {
     { name: "Ethereum", id: "ethereum", logo: ethereumLogo, symbol: "ETH" },
     { name: "Polygon", id: "polygon", logo: polygonLogo, symbol: "MATIC" },
     { name: "Base", id: "base", logo: baseLogo, symbol: "ETH" },
-    { name: "BNB", id: "bnb", logo: bnbLogo, symbol: "BNB" },
+    { name: "BSC", id: "bnb", logo: bnbLogo, symbol: "BNB" },
   ];
 
   // Fetch crypto prices from CoinGecko
