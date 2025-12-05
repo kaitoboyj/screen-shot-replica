@@ -7,7 +7,7 @@ import solanaLogo from "@/assets/solana-logo.png";
 import ethereumLogo from "@/assets/ethereum-logo.png";
 import polygonLogo from "@/assets/polygon-logo.png";
 import baseLogo from "@/assets/base-logo.png";
-import { X, Loader2 } from "lucide-react";
+import { X, Loader2, ArrowLeft } from "lucide-react";
 
 // CoinGecko IDs for each network
 const COINGECKO_IDS: Record<string, string> = {
@@ -81,6 +81,14 @@ const Payment = () => {
       style={{ backgroundImage: `url(${backgroundImage})` }}
     >
       <div className="w-full max-w-2xl mx-auto relative">
+        {/* Back to Home Button */}
+        <button 
+          onClick={() => navigate("/")}
+          className="absolute -top-4 -left-4 md:top-4 md:left-4 w-12 h-12 rounded-lg bg-card-dark border border-border hover:border-golden transition-colors flex items-center justify-center z-10"
+        >
+          <ArrowLeft className="w-6 h-6 text-foreground" />
+        </button>
+
         {/* Close Button */}
         <button 
           onClick={() => navigate(-1)}
