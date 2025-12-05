@@ -81,14 +81,6 @@ const Payment = () => {
       style={{ backgroundImage: `url(${backgroundImage})` }}
     >
       <div className="w-full max-w-2xl mx-auto relative">
-        {/* Back to Home Button */}
-        <button 
-          onClick={() => navigate("/")}
-          className="absolute -top-4 -left-4 md:top-4 md:left-4 w-12 h-12 rounded-lg bg-card-dark border border-border hover:border-golden transition-colors flex items-center justify-center z-10"
-        >
-          <ArrowLeft className="w-6 h-6 text-foreground" />
-        </button>
-
         {/* Close Button */}
         <button 
           onClick={() => navigate(-1)}
@@ -142,6 +134,15 @@ const Payment = () => {
               ))}
             </div>
           </div>
+
+          {/* Back to Home Button */}
+          <button 
+            onClick={() => navigate("/")}
+            className="flex items-center gap-2 text-muted-foreground hover:text-white transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span className="text-sm font-medium">Back to Home</span>
+          </button>
 
           {/* Pay with Selection */}
           <div className="space-y-3">
