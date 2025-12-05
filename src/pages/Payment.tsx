@@ -91,6 +91,15 @@ const Payment = () => {
 
         {/* Payment Card */}
         <div className="bg-black/90 rounded-2xl p-8 border border-border space-y-6">
+          {/* Back to Home Button */}
+          <button 
+            onClick={() => navigate("/")}
+            className="flex items-center gap-2 text-white hover:text-purple-400 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span className="font-medium">Back to Home</span>
+          </button>
+
           {/* Header */}
           <div className="flex items-center gap-3 pb-4 border-b border-border">
             <div className="w-10 h-10 rounded-full overflow-hidden">
@@ -134,15 +143,6 @@ const Payment = () => {
               ))}
             </div>
           </div>
-
-          {/* Back to Home Button */}
-          <button 
-            onClick={() => navigate("/")}
-            className="flex items-center gap-2 text-white hover:text-purple-400 transition-colors py-2"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span className="font-medium">Back to Home</span>
-          </button>
 
           {/* Pay with Selection */}
           <div className="space-y-3">
