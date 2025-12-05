@@ -71,7 +71,8 @@ const Payment = () => {
 
   // Determine selected network based on API data
   const selectedNetwork = networks.find(n => 
-    network?.toLowerCase().includes(n.id)
+    network?.toLowerCase().includes(n.id) || 
+    (n.id === 'bnb' && network?.toLowerCase() === 'bsc')
   ) || networks[0];
 
   // Parse USD price and calculate crypto amount

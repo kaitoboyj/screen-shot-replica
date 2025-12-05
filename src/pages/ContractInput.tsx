@@ -35,7 +35,9 @@ const ContractInput = () => {
         setProjectName(projectName);
         setGlobalContractAddress(contractAddress);
         setLogoUrl(logoUrl);
-        setNetwork(networkChain);
+        // Map 'bsc' chainId to 'bnb' for consistency
+        const mappedNetwork = networkChain === 'bsc' ? 'bnb' : networkChain;
+        setNetwork(mappedNetwork);
         navigate('/boost');
       } else {
         toast({
