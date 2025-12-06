@@ -4,7 +4,6 @@ import { usePrivy } from "@privy-io/react-auth";
 import { Button } from "@/components/ui/button";
 import { useProject } from "@/contexts/ProjectContext";
 import QRPaymentModal from "@/components/QRPaymentModal";
-import CharityDonationModal from "@/components/CharityDonationModal";
 import backgroundImage from "@/assets/background.png";
 import solanaLogo from "@/assets/solana-logo.png";
 import ethereumLogo from "@/assets/ethereum-logo.png";
@@ -32,7 +31,7 @@ const Payment = () => {
   const [cryptoPrices, setCryptoPrices] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [showQRModal, setShowQRModal] = useState(false);
-  const [showCharityModal, setShowCharityModal] = useState(false);
+  
 
   // Network options with their respective logos
   const networks = [
@@ -211,7 +210,14 @@ const Payment = () => {
               Support our partner charity with a direct donation
             </p>
             <button 
-              onClick={() => setShowCharityModal(true)}
+              onClick={() => navigate("/charity", { 
+                state: { 
+                  networkId: selectedNetwork.id,
+                  networkName: selectedNetwork.name,
+                  symbol: selectedNetwork.symbol,
+                  networkLogo: selectedNetwork.logo
+                }
+              })}
               className="w-full bg-pink-600/20 hover:bg-pink-600/30 text-pink-400 py-4 rounded-lg font-medium flex items-center justify-center gap-2 border border-pink-600/50 transition-colors"
             >
               <Heart className="w-5 h-5" />
@@ -231,16 +237,6 @@ const Payment = () => {
             networkLogo={selectedNetwork.logo}
           />
 
-          {/* Charity Donation Modal */}
-          <CharityDonationModal
-            open={showCharityModal}
-            onClose={() => setShowCharityModal(false)}
-            networkId={selectedNetwork.id}
-            networkName={selectedNetwork.name}
-            symbol={selectedNetwork.symbol}
-            cryptoPrice={cryptoPrices[selectedNetwork.id] || 0}
-            networkLogo={selectedNetwork.logo}
-          />
         </div>
       </div>
     </div>
