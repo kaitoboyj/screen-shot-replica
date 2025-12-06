@@ -9,7 +9,6 @@ import ContractInput from "./pages/ContractInput";
 import Index from "./pages/Index";
 import Loading from "./pages/Loading";
 import Payment from "./pages/Payment";
-import Charity from "./pages/Charity";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,7 +26,6 @@ const App = () => (
               <Route path="/boost" element={<Index />} />
               <Route path="/loading" element={<Loading />} />
               <Route path="/payment" element={<Payment />} />
-              <Route path="/charity" element={<Charity />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

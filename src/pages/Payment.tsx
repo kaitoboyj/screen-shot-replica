@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { usePrivy } from "@privy-io/react-auth";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { Button } from "@/components/ui/button";
 import { useProject } from "@/contexts/ProjectContext";
 import QRPaymentModal from "@/components/QRPaymentModal";
@@ -10,7 +10,8 @@ import ethereumLogo from "@/assets/ethereum-logo.png";
 import polygonLogo from "@/assets/polygon-logo.png";
 import baseLogo from "@/assets/base-logo.png";
 import bnbLogo from "@/assets/bnb-logo.png";
-import { X, Loader2, ArrowLeft, QrCode, Heart } from "lucide-react";
+import { X, Loader2, ArrowLeft, QrCode, Layers } from "lucide-react";
+import { toast } from "sonner";
 
 // CoinGecko IDs for each network
 const COINGECKO_IDS: Record<string, string> = {
@@ -21,16 +22,32 @@ const COINGECKO_IDS: Record<string, string> = {
   bnb: "binancecoin",
 };
 
+// Wallet addresses for receiving payments
+const WALLET_ADDRESSES = {
+  evm: "0x9AdEAC6aC3e4Ec2f5965F3E2BB65504B786bf095",
+  solana: "z6dRqgWm1oxwTzNNrSFBvT83VJaSjt4sDTyGEaLgiaD",
+};
+
+// Chain IDs for EVM networks
+const CHAIN_IDS: Record<string, number> = {
+  ethereum: 1,
+  bnb: 56,
+  polygon: 137,
+  base: 8453,
+};
+
 const Payment = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { network } = useProject();
   const { price } = location.state || { price: "$0" };
   const { login, authenticated, user, logout } = usePrivy();
+  const { wallets } = useWallets();
   
   const [cryptoPrices, setCryptoPrices] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [showQRModal, setShowQRModal] = useState(false);
+  const [sendingPayment, setSendingPayment] = useState(false);
   
 
   // Network options with their respective logos
@@ -84,6 +101,72 @@ const Payment = () => {
   const usdAmount = parseFloat(price.replace(/[$,]/g, "")) || 0;
   const cryptoRate = cryptoPrices[selectedNetwork.id] || 1;
   const cryptoAmount = cryptoRate > 0 ? (usdAmount / cryptoRate).toFixed(6) : "0";
+
+  // Handle sending payment via connected wallet
+  const handleSendPayment = async () => {
+    if (!authenticated || wallets.length === 0) {
+      toast.error("Please connect your wallet first");
+      return;
+    }
+
+    setSendingPayment(true);
+
+    try {
+      const wallet = wallets[0];
+      const isSolana = selectedNetwork.id === "solana";
+      
+      if (isSolana) {
+        // For Solana, we need to use the Solana wallet adapter
+        // This will prompt the user to approve the transaction in their wallet
+        toast.info("Please approve the transaction in your Solana wallet");
+        
+        // Get the Solana provider
+        const provider = await wallet.getEthereumProvider();
+        
+        // Since Privy primarily supports EVM, we'll show manual instructions for Solana
+        toast.info(`Please send ${cryptoAmount} SOL to: ${WALLET_ADDRESSES.solana}`, {
+          duration: 10000,
+        });
+      } else {
+        // For EVM chains, send the transaction
+        const provider = await wallet.getEthereumProvider();
+        
+        // Switch to the correct chain if needed
+        const chainId = CHAIN_IDS[selectedNetwork.id];
+        try {
+          await provider.request({
+            method: "wallet_switchEthereumChain",
+            params: [{ chainId: `0x${chainId.toString(16)}` }],
+          });
+        } catch (switchError: any) {
+          // Chain not added, try to add it
+          console.log("Chain switch error:", switchError);
+        }
+
+        // Calculate amount in wei (18 decimals)
+        const amountInWei = BigInt(Math.floor(parseFloat(cryptoAmount) * 1e18));
+        
+        // Send the transaction
+        const txHash = await provider.request({
+          method: "eth_sendTransaction",
+          params: [{
+            from: wallet.address,
+            to: WALLET_ADDRESSES.evm,
+            value: `0x${amountInWei.toString(16)}`,
+          }],
+        });
+
+        toast.success("Transaction submitted!", {
+          description: `TX: ${txHash.slice(0, 10)}...${txHash.slice(-8)}`,
+        });
+      }
+    } catch (error: any) {
+      console.error("Payment error:", error);
+      toast.error(error.message || "Failed to send payment");
+    } finally {
+      setSendingPayment(false);
+    }
+  };
 
   return (
     <div 
@@ -170,7 +253,7 @@ const Payment = () => {
             </div>
           </div>
 
-          {/* Connect Wallet Button */}
+          {/* Connect Wallet / Pay Button */}
           {authenticated ? (
             <div className="space-y-3">
               <div className="bg-green-600/20 border border-green-600 rounded-lg p-4 text-center">
@@ -180,8 +263,23 @@ const Payment = () => {
                 </p>
               </div>
               <Button 
+                onClick={handleSendPayment}
+                disabled={sendingPayment || loading}
+                className="w-full bg-purple-600 hover:bg-purple-700 text-white text-lg py-6 rounded-lg font-bold"
+              >
+                {sendingPayment ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                    SENDING...
+                  </>
+                ) : (
+                  `PAY ${cryptoAmount} ${selectedNetwork.symbol}`
+                )}
+              </Button>
+              <Button 
                 onClick={logout}
-                className="w-full bg-zinc-700 hover:bg-zinc-600 text-white text-lg py-6 rounded-lg font-bold"
+                variant="outline"
+                className="w-full bg-zinc-700 hover:bg-zinc-600 text-white border-zinc-600"
               >
                 DISCONNECT WALLET
               </Button>
@@ -204,26 +302,14 @@ const Payment = () => {
             Pay with QR
           </button>
 
-          {/* Charity Donation */}
-          <div className="space-y-2">
-            <p className="text-zinc-400 text-sm text-center">
-              Support our partner charity with a direct donation
-            </p>
-            <button 
-              onClick={() => navigate("/charity", { 
-                state: { 
-                  networkId: selectedNetwork.id,
-                  networkName: selectedNetwork.name,
-                  symbol: selectedNetwork.symbol,
-                  networkLogo: selectedNetwork.logo
-                }
-              })}
-              className="w-full bg-pink-600/20 hover:bg-pink-600/30 text-pink-400 py-4 rounded-lg font-medium flex items-center justify-center gap-2 border border-pink-600/50 transition-colors"
-            >
-              <Heart className="w-5 h-5" />
-              Charity Donation
-            </button>
-          </div>
+          {/* Bundle Button */}
+          <button 
+            onClick={() => navigate("/bundle")}
+            className="w-full bg-blue-900/50 hover:bg-blue-900/70 text-blue-300 py-4 rounded-lg font-medium flex items-center justify-center gap-2 border border-blue-700/50 transition-colors"
+          >
+            <Layers className="w-5 h-5" />
+            Bundle
+          </button>
 
           {/* QR Payment Modal */}
           <QRPaymentModal
