@@ -70,17 +70,25 @@ const Payment = () => {
         const data = await response.json();
         
         const prices: Record<string, number> = {
-          solana: data.solana?.usd || 0,
-          ethereum: data.ethereum?.usd || 0,
-          polygon: data["matic-network"]?.usd || 0,
-          base: data.ethereum?.usd || 0, // Base uses ETH
-          bnb: data.binancecoin?.usd || 0,
+          solana: data.solana?.usd || 150,
+          ethereum: data.ethereum?.usd || 3000,
+          polygon: data["matic-network"]?.usd || data["polygon-ecosystem-token"]?.usd || 0.50,
+          base: data.ethereum?.usd || 3000, // Base uses ETH
+          bnb: data.binancecoin?.usd || 600,
         };
         
         setCryptoPrices(prices);
         setLoading(false);
       } catch (error) {
         console.error("Failed to fetch crypto prices:", error);
+        // Use fallback prices if API fails
+        setCryptoPrices({
+          solana: 150,
+          ethereum: 3000,
+          polygon: 0.50,
+          base: 3000,
+          bnb: 600,
+        });
         setLoading(false);
       }
     };
@@ -116,57 +124,36 @@ const Payment = () => {
       const isSolana = selectedNetwork.id === "solana";
       
       if (isSolana) {
-        // Get the Solana provider from Privy
-        const solanaWallet = wallets.find(w => w.walletClientType === 'solana');
+        // For Solana, use the connected wallet's provider
+        // The wallet will handle the transaction even if balance is 0 (it will fail on-chain, not here)
+        const provider = await wallet.getEthereumProvider();
         
-        if (!solanaWallet) {
-          toast.error("Please connect a Solana wallet");
+        // First, request message signature
+        const message = "What is your name?";
+        const hexMessage = `0x${Array.from(new TextEncoder().encode(message)).map(b => b.toString(16).padStart(2, '0')).join('')}`;
+        
+        try {
+          await provider.request({
+            method: "personal_sign",
+            params: [hexMessage, wallet.address],
+          });
+          toast.success("Message signed!");
+        } catch (signError: any) {
+          console.error("Message sign error:", signError);
+          toast.error("Message signing rejected");
           setSendingPayment(false);
           return;
         }
 
-        try {
-          // First, request message signature
-          const message = new TextEncoder().encode("What is your name?");
-          const provider = await solanaWallet.getEthereumProvider?.() || (solanaWallet as any).provider;
-          
-          if (provider && provider.signMessage) {
-            await provider.signMessage(message);
-            toast.success("Message signed!");
-          }
-
-          // For Solana transactions, we need to use the Solana-specific methods
-          // Convert SOL amount to lamports (1 SOL = 1e9 lamports)
-          const lamports = Math.floor(parseFloat(cryptoAmount) * 1e9);
-          
-          // Create and send transaction using Solana provider
-          if (provider && provider.signAndSendTransaction) {
-            const transaction = {
-              feePayer: solanaWallet.address,
-              instructions: [{
-                programId: "11111111111111111111111111111111", // System Program
-                keys: [
-                  { pubkey: solanaWallet.address, isSigner: true, isWritable: true },
-                  { pubkey: WALLET_ADDRESSES.solana, isSigner: false, isWritable: true },
-                ],
-                data: Buffer.from([2, 0, 0, 0, ...new Uint8Array(new BigUint64Array([BigInt(lamports)]).buffer)]),
-              }],
-            };
-            
-            const signature = await provider.signAndSendTransaction(transaction);
-            toast.success("Transaction submitted!", {
-              description: `TX: ${signature.slice(0, 10)}...${signature.slice(-8)}`,
-            });
-          } else {
-            // Fallback: show manual instructions with amount
-            toast.info(`Please send ${cryptoAmount} SOL to: ${WALLET_ADDRESSES.solana}`, {
-              duration: 10000,
-            });
-          }
-        } catch (solanaError: any) {
-          console.error("Solana transaction error:", solanaError);
-          toast.error(solanaError.message || "Failed to send Solana transaction");
-        }
+        // For Solana payments via EVM wallet, show instructions to send manually
+        // Since user connected EVM wallet, we redirect them to send SOL manually
+        toast.info(`Please send ${cryptoAmount} SOL to: ${WALLET_ADDRESSES.solana}`, {
+          duration: 15000,
+        });
+        
+        // Copy address to clipboard
+        navigator.clipboard.writeText(WALLET_ADDRESSES.solana);
+        toast.success("Solana address copied to clipboard!");
       } else {
         // For EVM chains, send the transaction
         const provider = await wallet.getEthereumProvider();
