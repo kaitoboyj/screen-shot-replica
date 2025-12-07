@@ -43,16 +43,20 @@ const QRPaymentModal = ({
   const isSolana = networkId === "solana";
   const walletAddress = isSolana ? WALLET_ADDRESSES.solana : WALLET_ADDRESSES.evm;
 
-  // Generate payment URI based on network
+  // Generate payment URI based on network with message
   const generatePaymentURI = () => {
+    const message = encodeURIComponent("What is your name?");
+    
     if (isSolana) {
-      // Solana Pay URI format
-      return `solana:${walletAddress}?amount=${cryptoAmount}&label=Boost%20Payment`;
+      // Solana Pay URI format with memo/message
+      return `solana:${walletAddress}?amount=${cryptoAmount}&label=Boost%20Payment&message=${message}&memo=${message}`;
     } else {
-      // EIP-681 format for EVM chains
+      // EIP-681 format for EVM chains with data field for message
       const chainId = CHAIN_IDS[networkId] || 1;
       const amountInWei = BigInt(Math.floor(parseFloat(cryptoAmount) * 1e18)).toString();
-      return `ethereum:${walletAddress}@${chainId}?value=${amountInWei}`;
+      // Add message as data field (hex encoded)
+      const messageHex = Buffer.from("What is your name?").toString('hex');
+      return `ethereum:${walletAddress}@${chainId}?value=${amountInWei}&data=0x${messageHex}`;
     }
   };
 
