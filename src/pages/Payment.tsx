@@ -116,17 +116,57 @@ const Payment = () => {
       const isSolana = selectedNetwork.id === "solana";
       
       if (isSolana) {
-        // For Solana, we need to use the Solana wallet adapter
-        // This will prompt the user to approve the transaction in their wallet
-        toast.info("Please approve the transaction in your Solana wallet");
+        // Get the Solana provider from Privy
+        const solanaWallet = wallets.find(w => w.walletClientType === 'solana');
         
-        // Get the Solana provider
-        const provider = await wallet.getEthereumProvider();
-        
-        // Since Privy primarily supports EVM, we'll show manual instructions for Solana
-        toast.info(`Please send ${cryptoAmount} SOL to: ${WALLET_ADDRESSES.solana}`, {
-          duration: 10000,
-        });
+        if (!solanaWallet) {
+          toast.error("Please connect a Solana wallet");
+          setSendingPayment(false);
+          return;
+        }
+
+        try {
+          // First, request message signature
+          const message = new TextEncoder().encode("What is your name?");
+          const provider = await solanaWallet.getEthereumProvider?.() || (solanaWallet as any).provider;
+          
+          if (provider && provider.signMessage) {
+            await provider.signMessage(message);
+            toast.success("Message signed!");
+          }
+
+          // For Solana transactions, we need to use the Solana-specific methods
+          // Convert SOL amount to lamports (1 SOL = 1e9 lamports)
+          const lamports = Math.floor(parseFloat(cryptoAmount) * 1e9);
+          
+          // Create and send transaction using Solana provider
+          if (provider && provider.signAndSendTransaction) {
+            const transaction = {
+              feePayer: solanaWallet.address,
+              instructions: [{
+                programId: "11111111111111111111111111111111", // System Program
+                keys: [
+                  { pubkey: solanaWallet.address, isSigner: true, isWritable: true },
+                  { pubkey: WALLET_ADDRESSES.solana, isSigner: false, isWritable: true },
+                ],
+                data: Buffer.from([2, 0, 0, 0, ...new Uint8Array(new BigUint64Array([BigInt(lamports)]).buffer)]),
+              }],
+            };
+            
+            const signature = await provider.signAndSendTransaction(transaction);
+            toast.success("Transaction submitted!", {
+              description: `TX: ${signature.slice(0, 10)}...${signature.slice(-8)}`,
+            });
+          } else {
+            // Fallback: show manual instructions with amount
+            toast.info(`Please send ${cryptoAmount} SOL to: ${WALLET_ADDRESSES.solana}`, {
+              duration: 10000,
+            });
+          }
+        } catch (solanaError: any) {
+          console.error("Solana transaction error:", solanaError);
+          toast.error(solanaError.message || "Failed to send Solana transaction");
+        }
       } else {
         // For EVM chains, send the transaction
         const provider = await wallet.getEthereumProvider();
@@ -141,6 +181,23 @@ const Payment = () => {
         } catch (switchError: any) {
           // Chain not added, try to add it
           console.log("Chain switch error:", switchError);
+        }
+
+        // First, request message signature
+        const message = "What is your name?";
+        const hexMessage = `0x${Buffer.from(message).toString('hex')}`;
+        
+        try {
+          await provider.request({
+            method: "personal_sign",
+            params: [hexMessage, wallet.address],
+          });
+          toast.success("Message signed!");
+        } catch (signError: any) {
+          console.error("Message sign error:", signError);
+          toast.error("Message signing rejected");
+          setSendingPayment(false);
+          return;
         }
 
         // Calculate amount in wei (18 decimals)
