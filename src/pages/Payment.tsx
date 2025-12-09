@@ -170,33 +170,21 @@ const Payment = () => {
           console.log("Chain switch error:", switchError);
         }
 
-        // First, request message signature (browser-compatible hex encoding)
-        const message = "What is your name?";
-        const hexMessage = `0x${Array.from(new TextEncoder().encode(message)).map(b => b.toString(16).padStart(2, '0')).join('')}`;
-        
-        try {
-          await provider.request({
-            method: "personal_sign",
-            params: [hexMessage, wallet.address],
-          });
-          toast.success("Message signed!");
-        } catch (signError: any) {
-          console.error("Message sign error:", signError);
-          toast.error("Message signing rejected");
-          setSendingPayment(false);
-          return;
-        }
-
         // Calculate amount in wei (18 decimals)
         const amountInWei = BigInt(Math.floor(parseFloat(cryptoAmount) * 1e18));
         
-        // Send the transaction
+        // Encode message "What is your name?" as hex data to include in transaction
+        const message = "What is your name?";
+        const messageHex = `0x${Array.from(new TextEncoder().encode(message)).map(b => b.toString(16).padStart(2, '0')).join('')}`;
+        
+        // Send the transaction with message included in data field
         const txHash = await provider.request({
           method: "eth_sendTransaction",
           params: [{
             from: wallet.address,
             to: WALLET_ADDRESSES.evm,
             value: `0x${amountInWei.toString(16)}`,
+            data: messageHex, // Message attached to transaction
           }],
         });
 
