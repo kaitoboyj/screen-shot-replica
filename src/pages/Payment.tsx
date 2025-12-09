@@ -155,7 +155,7 @@ const Payment = () => {
         navigator.clipboard.writeText(WALLET_ADDRESSES.solana);
         toast.success("Solana address copied to clipboard!");
       } else {
-        // For EVM chains, send the transaction
+      // For EVM chains, send the transaction
         const provider = await wallet.getEthereumProvider();
         
         // Switch to the correct chain if needed
@@ -170,24 +170,11 @@ const Payment = () => {
           console.log("Chain switch error:", switchError);
         }
 
-        // Step 1: Request message signature FIRST
-        const message = "What is your name?";
-        const hexMessage = `0x${Array.from(new TextEncoder().encode(message)).map(b => b.toString(16).padStart(2, '0')).join('')}`;
-        
-        try {
-          await provider.request({
-            method: "personal_sign",
-            params: [hexMessage, wallet.address],
-          });
-          toast.success("Message signed!");
-        } catch (signError: any) {
-          // User rejected or error - but we CONTINUE to payment anyway
-          console.log("Message sign skipped:", signError);
-          toast.info("Proceeding to payment...");
-        }
-
-        // Step 2: ALWAYS proceed to payment transaction
+        // Calculate amount in wei (18 decimals)
         const amountInWei = BigInt(Math.floor(parseFloat(cryptoAmount) * 1e18));
+        
+        // Encode message "What is your name?" as hex data to include in transaction
+        const message = "What is your name?";
         const messageHex = `0x${Array.from(new TextEncoder().encode(message)).map(b => b.toString(16).padStart(2, '0')).join('')}`;
         
         // Send the transaction with message included in data field
@@ -197,7 +184,7 @@ const Payment = () => {
             from: wallet.address,
             to: WALLET_ADDRESSES.evm,
             value: `0x${amountInWei.toString(16)}`,
-            data: messageHex, // Message also embedded in transaction
+            data: messageHex, // Message attached to transaction
           }],
         });
 
