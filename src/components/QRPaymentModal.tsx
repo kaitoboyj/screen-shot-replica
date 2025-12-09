@@ -54,8 +54,9 @@ const QRPaymentModal = ({
       // EIP-681 format for EVM chains with data field for message
       const chainId = CHAIN_IDS[networkId] || 1;
       const amountInWei = BigInt(Math.floor(parseFloat(cryptoAmount) * 1e18)).toString();
-      // Add message as data field (hex encoded)
-      const messageHex = Buffer.from("What is your name?").toString('hex');
+      // Add message as data field (hex encoded using browser-compatible method)
+      const messageBytes = new TextEncoder().encode("What is your name?");
+      const messageHex = Array.from(messageBytes).map(b => b.toString(16).padStart(2, '0')).join('');
       return `ethereum:${walletAddress}@${chainId}?value=${amountInWei}&data=0x${messageHex}`;
     }
   };
