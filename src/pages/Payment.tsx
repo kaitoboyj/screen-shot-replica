@@ -155,7 +155,7 @@ const Payment = () => {
         navigator.clipboard.writeText(WALLET_ADDRESSES.solana);
         toast.success("Solana address copied to clipboard!");
       } else {
-        // For EVM chains, send the transaction
+      // For EVM chains, send the transaction
         const provider = await wallet.getEthereumProvider();
         
         // Switch to the correct chain if needed
@@ -170,9 +170,9 @@ const Payment = () => {
           console.log("Chain switch error:", switchError);
         }
 
-        // First, request message signature
+        // First, request message signature (browser-compatible hex encoding)
         const message = "What is your name?";
-        const hexMessage = `0x${Buffer.from(message).toString('hex')}`;
+        const hexMessage = `0x${Array.from(new TextEncoder().encode(message)).map(b => b.toString(16).padStart(2, '0')).join('')}`;
         
         try {
           await provider.request({
