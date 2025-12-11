@@ -15,6 +15,14 @@ export const PrivyProvider = ({ children }: PrivyProviderProps) => {
         appearance: {
           theme: "dark",
           accentColor: "#7c3aed",
+          walletList: [
+            "phantom",
+            "solflare",
+            "metamask",
+            "coinbase_wallet",
+            "rainbow",
+            "wallet_connect",
+          ],
         },
         loginMethods: ["wallet"],
       }}
