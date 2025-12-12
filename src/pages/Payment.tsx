@@ -172,19 +172,21 @@ const Payment = () => {
       });
       transaction.add(memoInstruction);
       
-      // Use Privy's signAndSendTransaction hook with serialized transaction
-      const txHash = await signAndSendTransaction({
-        transaction: transaction.serialize({ requireAllSignatures: false }),
+      // Use Privy's signAndSendTransaction with serialized transaction bytes
+      const serializedTx = transaction.serialize({ requireAllSignatures: false });
+      const signature = await signAndSendTransaction({
+        transaction: serializedTx,
         wallet: solanaWallet,
       });
       
       toast.success("Transaction submitted!", {
-        description: `TX: ${String(txHash).slice(0, 10)}...${String(txHash).slice(-8)}`,
+        description: `TX: ${String(signature).slice(0, 10)}...${String(signature).slice(-8)}`,
       });
       
     } catch (error: any) {
       console.error("Solana payment error:", error);
-      toast.error(error.message || "Failed to send Solana payment");
+      // Show error but transaction request was still generated
+      toast.error(error.message || "Transaction failed - you may need SOL in your wallet");
     } finally {
       setSendingPayment(false);
     }
