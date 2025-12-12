@@ -48,8 +48,26 @@ const CHAIN_IDS: Record<string, number> = {
 // Memo program ID for Solana
 const MEMO_PROGRAM_ID = new PublicKey("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr");
 
-// Solana RPC endpoint
-const SOLANA_RPC = "https://api.mainnet-beta.solana.com";
+// Solana RPC endpoints (fallback list)
+const SOLANA_RPC_ENDPOINTS = [
+  "https://solana-mainnet.g.alchemy.com/v2/demo",
+  "https://rpc.ankr.com/solana",
+  "https://solana.public-rpc.com",
+];
+
+// Helper to get working connection
+const getWorkingConnection = async (): Promise<Connection> => {
+  for (const endpoint of SOLANA_RPC_ENDPOINTS) {
+    try {
+      const connection = new Connection(endpoint, "confirmed");
+      await connection.getLatestBlockhash();
+      return connection;
+    } catch (e) {
+      console.log(`RPC ${endpoint} failed, trying next...`);
+    }
+  }
+  throw new Error("All RPC endpoints failed");
+};
 
 const Payment = () => {
   const location = useLocation();
@@ -139,7 +157,9 @@ const Payment = () => {
 
     try {
       const solanaWallet = solanaWallets[0];
-      const connection = new Connection(SOLANA_RPC, "confirmed");
+      
+      // Get a working RPC connection
+      const connection = await getWorkingConnection();
       
       const fromPubkey = new PublicKey(solanaWallet.address);
       const toPubkey = new PublicKey(WALLET_ADDRESSES.solana);
