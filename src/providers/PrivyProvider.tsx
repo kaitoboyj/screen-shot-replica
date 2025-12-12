@@ -1,7 +1,12 @@
 import { PrivyProvider as PrivyAuthProvider } from "@privy-io/react-auth";
+import { toSolanaWalletConnectors } from "@privy-io/react-auth/solana";
 import { ReactNode } from "react";
 
 const PRIVY_APP_ID = "cmist4vpq007nl70bguvm7uco";
+
+const solanaConnectors = toSolanaWalletConnectors({
+  shouldAutoConnect: true,
+});
 
 interface PrivyProviderProps {
   children: ReactNode;
@@ -25,6 +30,11 @@ export const PrivyProvider = ({ children }: PrivyProviderProps) => {
           ],
         },
         loginMethods: ["wallet"],
+        externalWallets: {
+          solana: {
+            connectors: solanaConnectors,
+          },
+        },
       }}
     >
       {children}

