@@ -20,9 +20,10 @@ export const PrivyProvider = ({ children }: PrivyProviderProps) => {
         appearance: {
           theme: "dark",
           accentColor: "#7c3aed",
-          walletList: [
+        walletList: [
             "phantom",
             "solflare",
+            "backpack",
             "metamask",
             "coinbase_wallet",
             "rainbow",
