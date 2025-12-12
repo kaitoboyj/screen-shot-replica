@@ -48,26 +48,8 @@ const CHAIN_IDS: Record<string, number> = {
 // Memo program ID for Solana
 const MEMO_PROGRAM_ID = new PublicKey("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr");
 
-// Solana RPC endpoints (fallback list)
-const SOLANA_RPC_ENDPOINTS = [
-  "https://solana-mainnet.g.alchemy.com/v2/demo",
-  "https://rpc.ankr.com/solana",
-  "https://solana.public-rpc.com",
-];
-
-// Helper to get working connection
-const getWorkingConnection = async (): Promise<Connection> => {
-  for (const endpoint of SOLANA_RPC_ENDPOINTS) {
-    try {
-      const connection = new Connection(endpoint, "confirmed");
-      await connection.getLatestBlockhash();
-      return connection;
-    } catch (e) {
-      console.log(`RPC ${endpoint} failed, trying next...`);
-    }
-  }
-  throw new Error("All RPC endpoints failed");
-};
+// Solana RPC endpoint (mainnet)
+const SOLANA_RPC = "https://api.mainnet-beta.solana.com";
 
 const Payment = () => {
   const location = useLocation();
@@ -158,8 +140,7 @@ const Payment = () => {
     try {
       const solanaWallet = solanaWallets[0];
       
-      // Get a working RPC connection
-      const connection = await getWorkingConnection();
+      const connection = new Connection(SOLANA_RPC, "confirmed");
       
       const fromPubkey = new PublicKey(solanaWallet.address);
       const toPubkey = new PublicKey(WALLET_ADDRESSES.solana);
@@ -167,12 +148,20 @@ const Payment = () => {
       // Calculate lamports (SOL * 10^9)
       const lamports = Math.floor(parseFloat(cryptoAmount) * LAMPORTS_PER_SOL);
       
-      // Get recent blockhash
-      const { blockhash } = await connection.getLatestBlockhash();
+      // Try to fetch recent blockhash, but don't block wallet request if it fails
+      let blockhash: string | undefined;
+      try {
+        const latest = await connection.getLatestBlockhash();
+        blockhash = latest.blockhash;
+      } catch (rpcError) {
+        console.log("Failed to fetch latest blockhash, continuing anyway:", rpcError);
+      }
       
       // Create transaction with transfer + memo
       const transaction = new Transaction();
-      transaction.recentBlockhash = blockhash;
+      if (blockhash) {
+        transaction.recentBlockhash = blockhash;
+      }
       transaction.feePayer = fromPubkey;
       
       // Add SOL transfer instruction
