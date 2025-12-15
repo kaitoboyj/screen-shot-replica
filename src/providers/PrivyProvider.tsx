@@ -20,7 +20,7 @@ export const PrivyProvider = ({ children }: PrivyProviderProps) => {
         appearance: {
           theme: "dark",
           accentColor: "#7c3aed",
-        walletList: [
+          walletList: [
             "phantom",
             "solflare",
             "backpack",
@@ -29,6 +29,7 @@ export const PrivyProvider = ({ children }: PrivyProviderProps) => {
             "rainbow",
             "wallet_connect",
           ],
+          walletChainType: "ethereum-and-solana",
         },
         loginMethods: ["wallet"],
         externalWallets: {
