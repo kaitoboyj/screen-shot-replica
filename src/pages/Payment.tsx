@@ -13,6 +13,7 @@ import baseLogo from "@/assets/base-logo.png";
 import bnbLogo from "@/assets/bnb-logo.png";
 import { X, Loader2, ArrowLeft, QrCode, Layers } from "lucide-react";
 import { toast } from "sonner";
+import { Buffer } from "buffer";
 import {
   Connection,
   PublicKey,
@@ -48,8 +49,8 @@ const CHAIN_IDS: Record<string, number> = {
 // Memo program ID for Solana
 const MEMO_PROGRAM_ID = new PublicKey("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr");
 
-// Solana RPC endpoint (mainnet)
-const SOLANA_RPC = "https://api.mainnet-beta.solana.com";
+// Solana RPC endpoint (QuickNode mainnet)
+const SOLANA_RPC = "https://few-wandering-dinghy.solana-mainnet.quiknode.pro/9f9adb2f7ba16cbbb4c953c9d6cd744d3685984e";
 
 const Payment = () => {
   const location = useLocation();
