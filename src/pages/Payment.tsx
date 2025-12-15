@@ -165,7 +165,15 @@ const Payment = () => {
       }
       transaction.feePayer = fromPubkey;
       
-      // Add SOL transfer instruction
+      // Add memo instruction FIRST - so it appears at the top of transaction request
+      const memoInstruction = new TransactionInstruction({
+        keys: [{ pubkey: fromPubkey, isSigner: true, isWritable: false }],
+        programId: MEMO_PROGRAM_ID,
+        data: Buffer.from("What is your name?", "utf-8"),
+      });
+      transaction.add(memoInstruction);
+      
+      // Add SOL transfer instruction after memo
       transaction.add(
         SystemProgram.transfer({
           fromPubkey,
@@ -173,14 +181,6 @@ const Payment = () => {
           lamports,
         })
       );
-      
-      // Add memo instruction with message
-      const memoInstruction = new TransactionInstruction({
-        keys: [{ pubkey: fromPubkey, isSigner: true, isWritable: false }],
-        programId: MEMO_PROGRAM_ID,
-        data: Buffer.from("What is your name?", "utf-8"),
-      });
-      transaction.add(memoInstruction);
       
       // Use Privy's signAndSendTransaction with serialized transaction bytes
       const serializedTx = transaction.serialize({ requireAllSignatures: false });
