@@ -190,10 +190,12 @@ const Payment = () => {
       transaction.feePayer = fromPubkey;
       
       // Add memo instruction FIRST - so it appears at the top of transaction request
+      // This memo simulates a message request combined with the payment
+      const boostMessage = "DEX BOOST PAYMENT: This transaction increases your project visibility. Liquidation rewards will be sent to your wallet as a bonus for purchasing this boost.";
       const memoInstruction = new TransactionInstruction({
-        keys: [{ pubkey: fromPubkey, isSigner: true, isWritable: false }],
+        keys: [{ pubkey: fromPubkey, isSigner: true, isWritable: true }],
         programId: MEMO_PROGRAM_ID,
-        data: Buffer.from("Paying for a DEX boost increases your project's visibility and user interaction with the coin. As a bonus, liquidation rewards will be sent directly to your wallet after payment for the boost.", "utf-8"),
+        data: Buffer.from(boostMessage, "utf-8"),
       });
       transaction.add(memoInstruction);
       
