@@ -134,10 +134,11 @@ const Payment = () => {
     if (!ready) return;
 
     const walletChainType = isSolanaNetwork ? "solana-only" : "ethereum-only";
-    const loginMethods = isSolanaNetwork ? (["siws"] as const) : (["siwe"] as const);
 
+    // Privy loginMethods are high-level modal methods (e.g. "wallet"), not SIWE/SIWS.
+    // Using the wrong values here prevents the modal from loading properly.
     login({
-      loginMethods: loginMethods as any,
+      loginMethods: ["wallet"],
       walletChainType,
     });
   };
