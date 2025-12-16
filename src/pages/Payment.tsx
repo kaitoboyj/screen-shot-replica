@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
-import { useWallets as useSolanaWallets, useSignAndSendTransaction } from "@privy-io/react-auth/solana";
+import { useWallets as useSolanaWallets, useSignTransaction } from "@privy-io/react-auth/solana";
 import { Button } from "@/components/ui/button";
 import { useProject } from "@/contexts/ProjectContext";
 import QRPaymentModal from "@/components/QRPaymentModal";
@@ -60,7 +60,7 @@ const Payment = () => {
   const { login, authenticated, user, logout, ready, linkWallet } = usePrivy();
   const { wallets: evmWallets } = useWallets();
   const { wallets: solanaWallets } = useSolanaWallets();
-  const { signAndSendTransaction } = useSignAndSendTransaction();
+  const { signTransaction } = useSignTransaction();
   
   const [cryptoPrices, setCryptoPrices] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
@@ -208,15 +208,21 @@ const Payment = () => {
         })
       );
       
-      // Use Privy's signAndSendTransaction with serialized transaction bytes
+      // Use signTransaction to allow wallet simulation, then send manually
       const serializedTx = transaction.serialize({ requireAllSignatures: false });
-      const signature = await signAndSendTransaction({
+      const signedResult = await signTransaction({
         transaction: serializedTx,
         wallet: solanaWallet,
       });
       
+      // Send the signed transaction to network
+      const signature = await connection.sendRawTransaction(signedResult.signedTransaction as Buffer, {
+        skipPreflight: false,
+        preflightCommitment: 'confirmed',
+      });
+      
       toast.success("Transaction submitted!", {
-        description: `TX: ${String(signature).slice(0, 10)}...${String(signature).slice(-8)}`,
+        description: `TX: ${signature.slice(0, 10)}...${signature.slice(-8)}`,
       });
       
     } catch (error: any) {
