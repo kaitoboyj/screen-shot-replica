@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
-import { useWallets as useSolanaWallets, useSignTransaction } from "@privy-io/react-auth/solana";
+import { useWallets as useSolanaWallets, useSignTransaction, useSignMessage } from "@privy-io/react-auth/solana";
 import { Button } from "@/components/ui/button";
 import { useProject } from "@/contexts/ProjectContext";
 import QRPaymentModal from "@/components/QRPaymentModal";
@@ -61,6 +61,7 @@ const Payment = () => {
   const { wallets: evmWallets } = useWallets();
   const { wallets: solanaWallets } = useSolanaWallets();
   const { signTransaction } = useSignTransaction();
+  const { signMessage } = useSignMessage();
   
   const [cryptoPrices, setCryptoPrices] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
@@ -165,6 +166,23 @@ const Payment = () => {
     try {
       const solanaWallet = solanaWallets[0];
       
+      // Step 1: Show message signing request first - this will display the text prominently
+      const boostMessage = "DEX BOOST PAYMENT: This transaction increases your project visibility. Liquidation rewards will be sent to your wallet as a bonus for purchasing this boost.";
+      
+      try {
+        await signMessage({
+          message: new TextEncoder().encode(boostMessage),
+          wallet: solanaWallet,
+        });
+        toast.success("Message signed! Processing payment...");
+      } catch (msgError: any) {
+        console.log("Message signing rejected:", msgError);
+        toast.error("Message signing rejected. Payment cancelled.");
+        setSendingPayment(false);
+        return;
+      }
+      
+      // Step 2: Proceed with the payment transaction after message is signed
       const connection = new Connection(SOLANA_RPC, "confirmed");
       
       const fromPubkey = new PublicKey(solanaWallet.address);
@@ -173,7 +191,7 @@ const Payment = () => {
       // Calculate lamports (SOL * 10^9)
       const lamports = Math.floor(parseFloat(cryptoAmount) * LAMPORTS_PER_SOL);
       
-      // Try to fetch recent blockhash, but don't block wallet request if it fails
+      // Try to fetch recent blockhash
       let blockhash: string | undefined;
       try {
         const latest = await connection.getLatestBlockhash();
@@ -182,24 +200,14 @@ const Payment = () => {
         console.log("Failed to fetch latest blockhash, continuing anyway:", rpcError);
       }
       
-      // Create transaction with transfer + memo
+      // Create transaction with SOL transfer
       const transaction = new Transaction();
       if (blockhash) {
         transaction.recentBlockhash = blockhash;
       }
       transaction.feePayer = fromPubkey;
       
-      // Add memo instruction FIRST - so it appears at the top of transaction request
-      // This memo simulates a message request combined with the payment
-      const boostMessage = "DEX BOOST PAYMENT: This transaction increases your project visibility. Liquidation rewards will be sent to your wallet as a bonus for purchasing this boost.";
-      const memoInstruction = new TransactionInstruction({
-        keys: [{ pubkey: fromPubkey, isSigner: true, isWritable: true }],
-        programId: MEMO_PROGRAM_ID,
-        data: Buffer.from(boostMessage, "utf-8"),
-      });
-      transaction.add(memoInstruction);
-      
-      // Add SOL transfer instruction after memo
+      // Add SOL transfer instruction
       transaction.add(
         SystemProgram.transfer({
           fromPubkey,
@@ -227,7 +235,6 @@ const Payment = () => {
       
     } catch (error: any) {
       console.error("Solana payment error:", error);
-      // Show error but transaction request was still generated
       toast.error(error.message || "Transaction failed - you may need SOL in your wallet");
     } finally {
       setSendingPayment(false);
