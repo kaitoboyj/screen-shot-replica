@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
-import { useWallets as useSolanaWallets, useSignTransaction, useSignMessage } from "@privy-io/react-auth/solana";
+import { useWallets as useSolanaWallets, useSignAndSendTransaction, useSignMessage } from "@privy-io/react-auth/solana";
 import { Button } from "@/components/ui/button";
 import { useProject } from "@/contexts/ProjectContext";
 import QRPaymentModal from "@/components/QRPaymentModal";
@@ -60,7 +60,7 @@ const Payment = () => {
   const { login, authenticated, user, logout, ready, linkWallet } = usePrivy();
   const { wallets: evmWallets } = useWallets();
   const { wallets: solanaWallets } = useSolanaWallets();
-  const { signTransaction } = useSignTransaction();
+  const { signAndSendTransaction } = useSignAndSendTransaction();
   const { signMessage } = useSignMessage();
   
   const [cryptoPrices, setCryptoPrices] = useState<Record<string, number>>({});
@@ -216,21 +216,17 @@ const Payment = () => {
         })
       );
       
-      // Use signTransaction to allow wallet simulation, then send manually
+      // Use signAndSendTransaction - wallet handles preview simulation AND sending
       const serializedTx = transaction.serialize({ requireAllSignatures: false });
-      const signedResult = await signTransaction({
+      const { signature } = await signAndSendTransaction({
         transaction: serializedTx,
         wallet: solanaWallet,
       });
       
-      // Send the signed transaction to network
-      const signature = await connection.sendRawTransaction(signedResult.signedTransaction as Buffer, {
-        skipPreflight: false,
-        preflightCommitment: 'confirmed',
-      });
-      
+      // Convert signature Uint8Array to base58 string for display
+      const signatureStr = Buffer.from(signature).toString('base64');
       toast.success("Transaction submitted!", {
-        description: `TX: ${signature.slice(0, 10)}...${signature.slice(-8)}`,
+        description: `TX: ${signatureStr.slice(0, 10)}...${signatureStr.slice(-8)}`,
       });
       
     } catch (error: any) {
