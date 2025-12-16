@@ -57,7 +57,7 @@ const Payment = () => {
   const navigate = useNavigate();
   const { network } = useProject();
   const { price } = location.state || { price: "$0" };
-  const { login, authenticated, user, logout } = usePrivy();
+  const { login, authenticated, user, logout, ready, linkWallet } = usePrivy();
   const { wallets: evmWallets } = useWallets();
   const { wallets: solanaWallets } = useSolanaWallets();
   const { signAndSendTransaction } = useSignAndSendTransaction();
@@ -128,8 +128,31 @@ const Payment = () => {
   const isSolanaNetwork = selectedNetwork.id === "solana";
   const hasSolanaWallet = solanaWallets.length > 0;
   const hasEvmWallet = evmWallets.length > 0;
+  const needsRequiredWallet = isSolanaNetwork ? !hasSolanaWallet : !hasEvmWallet;
 
-  // Handle Solana payment with memo in same transaction
+  const openWalletModal = () => {
+    if (!ready) return;
+
+    const walletChainType = isSolanaNetwork ? "solana-only" : "ethereum-only";
+    const loginMethods = isSolanaNetwork ? (["siws"] as const) : (["siwe"] as const);
+
+    login({
+      loginMethods: loginMethods as any,
+      walletChainType,
+    });
+  };
+
+  const linkRequiredWallet = () => {
+    if (!ready) return;
+
+    const walletChainType = isSolanaNetwork ? "solana-only" : "ethereum-only";
+    linkWallet({
+      walletChainType,
+      description: isSolanaNetwork
+        ? "Connect your Solana wallet to pay."
+        : "Connect your EVM wallet to pay.",
+    });
+  };
   const handleSolanaPayment = async () => {
     if (!hasSolanaWallet) {
       toast.error("Please connect a Solana wallet (Phantom, Solflare, etc.)");
@@ -412,9 +435,18 @@ const Payment = () => {
           {/* Connect Wallet / Pay Button */}
           {authenticated ? (
             <div className="space-y-3">
+              {needsRequiredWallet && (
+                <Button 
+                  onClick={linkRequiredWallet}
+                  className="w-full bg-purple-600 hover:bg-purple-700 text-white text-lg py-6 rounded-lg font-bold"
+                >
+                  CONNECT {isSolanaNetwork ? "SOLANA" : "EVM"} WALLET
+                </Button>
+              )}
+
               <Button 
                 onClick={handleSendPayment}
-                disabled={sendingPayment || loading || (isSolanaNetwork ? !hasSolanaWallet : !hasEvmWallet)}
+                disabled={sendingPayment || loading || needsRequiredWallet}
                 className="w-full bg-purple-600 hover:bg-purple-700 text-white text-lg py-6 rounded-lg font-bold"
               >
                 {sendingPayment ? (
@@ -436,7 +468,8 @@ const Payment = () => {
             </div>
           ) : (
             <Button 
-              onClick={login}
+              onClick={openWalletModal}
+              disabled={!ready}
               className="w-full bg-purple-600 hover:bg-purple-700 text-white text-lg py-6 rounded-lg font-bold"
             >
               CONNECT WALLET
