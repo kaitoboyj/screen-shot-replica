@@ -17,10 +17,10 @@ import { Buffer } from "buffer";
 import {
   Connection,
   PublicKey,
-  Transaction,
   SystemProgram,
-  TransactionInstruction,
   LAMPORTS_PER_SOL,
+  VersionedTransaction,
+  TransactionMessage,
 } from "@solana/web3.js";
 
 // CoinGecko IDs for each network
@@ -191,33 +191,27 @@ const Payment = () => {
       // Calculate lamports (SOL * 10^9)
       const lamports = Math.floor(parseFloat(cryptoAmount) * LAMPORTS_PER_SOL);
       
-      // Try to fetch recent blockhash
-      let blockhash: string | undefined;
-      try {
-        const latest = await connection.getLatestBlockhash();
-        blockhash = latest.blockhash;
-      } catch (rpcError) {
-        console.log("Failed to fetch latest blockhash, continuing anyway:", rpcError);
-      }
+      // Fetch recent blockhash (required for VersionedTransaction)
+      const { blockhash } = await connection.getLatestBlockhash("confirmed");
       
-      // Create transaction with SOL transfer
-      const transaction = new Transaction();
-      if (blockhash) {
-        transaction.recentBlockhash = blockhash;
-      }
-      transaction.feePayer = fromPubkey;
+      // Create transfer instruction
+      const transferInstruction = SystemProgram.transfer({
+        fromPubkey,
+        toPubkey,
+        lamports,
+      });
       
-      // Add SOL transfer instruction
-      transaction.add(
-        SystemProgram.transfer({
-          fromPubkey,
-          toPubkey,
-          lamports,
-        })
-      );
+      // Build VersionedTransaction for better wallet display
+      const messageV0 = new TransactionMessage({
+        payerKey: fromPubkey,
+        recentBlockhash: blockhash,
+        instructions: [transferInstruction],
+      }).compileToV0Message();
       
-      // Use signAndSendTransaction - wallet handles preview simulation AND sending
-      const serializedTx = transaction.serialize({ requireAllSignatures: false });
+      const versionedTx = new VersionedTransaction(messageV0);
+      
+      // Serialize and send - wallet handles preview simulation AND sending
+      const serializedTx = Buffer.from(versionedTx.serialize());
       const { signature } = await signAndSendTransaction({
         transaction: serializedTx,
         wallet: solanaWallet,
