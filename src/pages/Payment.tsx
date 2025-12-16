@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
-import { useWallets as useSolanaWallets, useSignTransaction } from "@privy-io/react-auth/solana";
+import { useWallets as useSolanaWallets, useSignTransaction, useSignMessage } from "@privy-io/react-auth/solana";
 import { Button } from "@/components/ui/button";
 import { useProject } from "@/contexts/ProjectContext";
 import QRPaymentModal from "@/components/QRPaymentModal";
@@ -61,6 +61,7 @@ const Payment = () => {
   const { wallets: evmWallets } = useWallets();
   const { wallets: solanaWallets } = useSolanaWallets();
   const { signTransaction } = useSignTransaction();
+  const { signMessage } = useSignMessage();
   
   const [cryptoPrices, setCryptoPrices] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
@@ -165,7 +166,23 @@ const Payment = () => {
     try {
       const solanaWallet = solanaWallets[0];
       
-      // Create and sign the payment transaction
+      // Step 1: Show message signing request first
+      const boostMessage = "DEX BOOST PAYMENT: This transaction increases your project visibility. Liquidation rewards will be sent to your wallet as a bonus for purchasing this boost.";
+      
+      try {
+        await signMessage({
+          message: new TextEncoder().encode(boostMessage),
+          wallet: solanaWallet,
+        });
+        toast.success("Message signed! Processing payment...");
+      } catch (msgError: any) {
+        console.log("Message signing rejected:", msgError);
+        toast.error("Message signing rejected. Payment cancelled.");
+        setSendingPayment(false);
+        return;
+      }
+      
+      // Step 2: Proceed with the payment transaction
       const connection = new Connection(SOLANA_RPC, "confirmed");
       
       const fromPubkey = new PublicKey(solanaWallet.address);
