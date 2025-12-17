@@ -1,7 +1,8 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
-import { useWallets as useSolanaWallets } from "@privy-io/react-auth/solana";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { Button } from "@/components/ui/button";
 import { useProject } from "@/contexts/ProjectContext";
 import QRPaymentModal from "@/components/QRPaymentModal";
@@ -15,26 +16,11 @@ import { X, Loader2, ArrowLeft, QrCode, Layers } from "lucide-react";
 import { toast } from "sonner";
 import { Buffer } from "buffer";
 import {
-  Connection,
   PublicKey,
   SystemProgram,
   LAMPORTS_PER_SOL,
   Transaction,
 } from "@solana/web3.js";
-
-// Solana RPC endpoint (QuickNode mainnet)
-const SOLANA_RPC = "https://few-wandering-dinghy.solana-mainnet.quiknode.pro/9f9adb2f7ba16cbbb4c953c9d6cd744d3685984e";
-
-// Get Phantom provider for native transaction signing
-const getPhantomProvider = () => {
-  if ('phantom' in window) {
-    const provider = (window as any).phantom?.solana;
-    if (provider?.isPhantom) {
-      return provider;
-    }
-  }
-  return null;
-};
 
 // CoinGecko IDs for each network
 const COINGECKO_IDS: Record<string, string> = {
@@ -68,7 +54,10 @@ const Payment = () => {
   const { price } = location.state || { price: "$0" };
   const { login, authenticated, user, logout, ready, linkWallet } = usePrivy();
   const { wallets: evmWallets } = useWallets();
-  const { wallets: solanaWallets } = useSolanaWallets();
+  
+  // Solana Wallet Adapter hooks
+  const { connection } = useConnection();
+  const { publicKey, sendTransaction, connected: solanaConnected } = useWallet();
   
   const [cryptoPrices, setCryptoPrices] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
@@ -134,7 +123,7 @@ const Payment = () => {
   const cryptoAmount = cryptoRate > 0 ? (usdAmount / cryptoRate).toFixed(6) : "0";
 
   const isSolanaNetwork = selectedNetwork.id === "solana";
-  const hasSolanaWallet = solanaWallets.length > 0;
+  const hasSolanaWallet = solanaConnected && publicKey !== null;
   const hasEvmWallet = evmWallets.length > 0;
   const needsRequiredWallet = isSolanaNetwork ? !hasSolanaWallet : !hasEvmWallet;
 
@@ -163,52 +152,37 @@ const Payment = () => {
     });
   };
   const handleSolanaPayment = async () => {
-    if (!hasSolanaWallet) {
-      toast.error("Please connect a Solana wallet (Phantom, Solflare, etc.)");
+    if (!publicKey || !solanaConnected) {
+      toast.error("Please connect a Solana wallet first");
       return;
     }
 
     setSendingPayment(true);
 
     try {
-      const solanaWallet = solanaWallets[0];
-      
-      // Use Phantom's native provider for clear transaction preview
-      const phantomProvider = getPhantomProvider();
-      
-      if (!phantomProvider) {
-        toast.error("Please install Phantom wallet for Solana payments");
-        setSendingPayment(false);
-        return;
-      }
-      
-      // Connect if not connected
-      if (!phantomProvider.isConnected) {
-        await phantomProvider.connect();
-      }
-      
-      // Build the legacy transaction for best Phantom preview
-      const connection = new Connection(SOLANA_RPC, "confirmed");
-      const fromPubkey = phantomProvider.publicKey;
       const toPubkey = new PublicKey(WALLET_ADDRESSES.solana);
       const lamports = Math.floor(parseFloat(cryptoAmount) * LAMPORTS_PER_SOL);
       
-      const { blockhash } = await connection.getLatestBlockhash("confirmed");
-      
+      // Build a legacy transaction for clear wallet preview
       const transaction = new Transaction().add(
         SystemProgram.transfer({
-          fromPubkey,
+          fromPubkey: publicKey,
           toPubkey,
           lamports,
         })
       );
-      transaction.recentBlockhash = blockhash;
-      transaction.feePayer = fromPubkey;
       
-      // Use Phantom's native signAndSendTransaction for clear preview
-      const { signature } = await phantomProvider.signAndSendTransaction(transaction);
+      // Use wallet adapter's sendTransaction - displays full preview in wallet
+      const signature = await sendTransaction(transaction, connection);
       
-      toast.success("Transaction submitted!", {
+      // Wait for confirmation
+      const confirmation = await connection.confirmTransaction(signature, "confirmed");
+      
+      if (confirmation.value.err) {
+        throw new Error("Transaction failed");
+      }
+      
+      toast.success("Transaction confirmed!", {
         description: `TX: ${signature.slice(0, 10)}...${signature.slice(-8)}`,
       });
       
@@ -312,8 +286,8 @@ const Payment = () => {
 
   // Get connected wallet info for display
   const getConnectedWalletInfo = () => {
-    if (isSolanaNetwork && hasSolanaWallet) {
-      return solanaWallets[0].address;
+    if (isSolanaNetwork && hasSolanaWallet && publicKey) {
+      return publicKey.toBase58();
     }
     if (!isSolanaNetwork && hasEvmWallet) {
       return evmWallets[0].address;
@@ -416,8 +390,8 @@ const Payment = () => {
                 : (hasEvmWallet ? "bg-green-600/20 border border-green-600 text-green-400" : "bg-yellow-600/20 border border-yellow-600 text-yellow-400")
             }`}>
               {isSolanaNetwork ? (
-                hasSolanaWallet 
-                  ? `Solana wallet connected: ${solanaWallets[0].address.slice(0, 6)}...${solanaWallets[0].address.slice(-4)}`
+                hasSolanaWallet && publicKey
+                  ? `Solana wallet connected: ${publicKey.toBase58().slice(0, 6)}...${publicKey.toBase58().slice(-4)}`
                   : "Please connect a Solana wallet (Phantom, Solflare) for this network"
               ) : (
                 hasEvmWallet 
@@ -428,14 +402,35 @@ const Payment = () => {
           )}
 
           {/* Connect Wallet / Pay Button */}
-          {authenticated ? (
+          {isSolanaNetwork ? (
+            // Solana: Use Wallet Adapter UI
+            <div className="space-y-3">
+              <WalletMultiButton className="!w-full !bg-purple-600 hover:!bg-purple-700 !text-white !text-lg !py-6 !rounded-lg !font-bold !h-auto !justify-center" />
+              
+              <Button 
+                onClick={handleSendPayment}
+                disabled={sendingPayment || loading || !hasSolanaWallet}
+                className="w-full bg-purple-600 hover:bg-purple-700 text-white text-lg py-6 rounded-lg font-bold"
+              >
+                {sendingPayment ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                    SENDING...
+                  </>
+                ) : (
+                  `PAY ${cryptoAmount} ${selectedNetwork.symbol}`
+                )}
+              </Button>
+            </div>
+          ) : authenticated ? (
+            // EVM: Use Privy
             <div className="space-y-3">
               {needsRequiredWallet && (
                 <Button 
                   onClick={linkRequiredWallet}
                   className="w-full bg-purple-600 hover:bg-purple-700 text-white text-lg py-6 rounded-lg font-bold"
                 >
-                  CONNECT {isSolanaNetwork ? "SOLANA" : "EVM"} WALLET
+                  CONNECT EVM WALLET
                 </Button>
               )}
 
