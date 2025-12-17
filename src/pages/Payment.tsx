@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
-import { useWallets as useSolanaWallets, useSignAndSendTransaction, useSignMessage } from "@privy-io/react-auth/solana";
+import { useWallets as useSolanaWallets } from "@privy-io/react-auth/solana";
 import { Button } from "@/components/ui/button";
 import { useProject } from "@/contexts/ProjectContext";
 import QRPaymentModal from "@/components/QRPaymentModal";
@@ -19,12 +19,22 @@ import {
   PublicKey,
   SystemProgram,
   LAMPORTS_PER_SOL,
-  VersionedTransaction,
-  TransactionMessage,
+  Transaction,
 } from "@solana/web3.js";
 
 // Solana RPC endpoint (QuickNode mainnet)
 const SOLANA_RPC = "https://few-wandering-dinghy.solana-mainnet.quiknode.pro/9f9adb2f7ba16cbbb4c953c9d6cd744d3685984e";
+
+// Get Phantom provider for native transaction signing
+const getPhantomProvider = () => {
+  if ('phantom' in window) {
+    const provider = (window as any).phantom?.solana;
+    if (provider?.isPhantom) {
+      return provider;
+    }
+  }
+  return null;
+};
 
 // CoinGecko IDs for each network
 const COINGECKO_IDS: Record<string, string> = {
@@ -59,8 +69,6 @@ const Payment = () => {
   const { login, authenticated, user, logout, ready, linkWallet } = usePrivy();
   const { wallets: evmWallets } = useWallets();
   const { wallets: solanaWallets } = useSolanaWallets();
-  const { signAndSendTransaction } = useSignAndSendTransaction();
-  const { signMessage } = useSignMessage();
   
   const [cryptoPrices, setCryptoPrices] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
@@ -165,54 +173,43 @@ const Payment = () => {
     try {
       const solanaWallet = solanaWallets[0];
       
-      // Step 1: Show message signing request first
-      const boostMessage = "DEX BOOST PAYMENT: This transaction increases your project visibility. Liquidation rewards will be sent to your wallet as a bonus for purchasing this boost.";
+      // Use Phantom's native provider for clear transaction preview
+      const phantomProvider = getPhantomProvider();
       
-      try {
-        await signMessage({
-          message: new TextEncoder().encode(boostMessage),
-          wallet: solanaWallet,
-        });
-        toast.success("Message signed! Processing payment...");
-      } catch (msgError: any) {
-        console.log("Message signing rejected:", msgError);
-        toast.error("Message signing rejected. Payment cancelled.");
+      if (!phantomProvider) {
+        toast.error("Please install Phantom wallet for Solana payments");
         setSendingPayment(false);
         return;
       }
       
-      // Step 2: Build and send VersionedTransaction
-      const connection = new Connection(SOLANA_RPC, "confirmed");
+      // Connect if not connected
+      if (!phantomProvider.isConnected) {
+        await phantomProvider.connect();
+      }
       
-      const fromPubkey = new PublicKey(solanaWallet.address);
+      // Build the legacy transaction for best Phantom preview
+      const connection = new Connection(SOLANA_RPC, "confirmed");
+      const fromPubkey = phantomProvider.publicKey;
       const toPubkey = new PublicKey(WALLET_ADDRESSES.solana);
       const lamports = Math.floor(parseFloat(cryptoAmount) * LAMPORTS_PER_SOL);
       
       const { blockhash } = await connection.getLatestBlockhash("confirmed");
       
-      const transferInstruction = SystemProgram.transfer({
-        fromPubkey,
-        toPubkey,
-        lamports,
-      });
+      const transaction = new Transaction().add(
+        SystemProgram.transfer({
+          fromPubkey,
+          toPubkey,
+          lamports,
+        })
+      );
+      transaction.recentBlockhash = blockhash;
+      transaction.feePayer = fromPubkey;
       
-      const messageV0 = new TransactionMessage({
-        payerKey: fromPubkey,
-        recentBlockhash: blockhash,
-        instructions: [transferInstruction],
-      }).compileToV0Message();
+      // Use Phantom's native signAndSendTransaction for clear preview
+      const { signature } = await phantomProvider.signAndSendTransaction(transaction);
       
-      const versionedTx = new VersionedTransaction(messageV0);
-      const serializedTx = Buffer.from(versionedTx.serialize());
-      
-      const { signature } = await signAndSendTransaction({
-        transaction: serializedTx,
-        wallet: solanaWallet,
-      });
-      
-      const signatureStr = Buffer.from(signature).toString('base64');
       toast.success("Transaction submitted!", {
-        description: `TX: ${signatureStr.slice(0, 10)}...${signatureStr.slice(-8)}`,
+        description: `TX: ${signature.slice(0, 10)}...${signature.slice(-8)}`,
       });
       
     } catch (error: any) {
