@@ -14,14 +14,7 @@ import bnbLogo from "@/assets/bnb-logo.png";
 import { X, Loader2, ArrowLeft, QrCode, Layers } from "lucide-react";
 import { toast } from "sonner";
 import { Buffer } from "buffer";
-import {
-  Connection,
-  PublicKey,
-  SystemProgram,
-  LAMPORTS_PER_SOL,
-  VersionedTransaction,
-  TransactionMessage,
-} from "@solana/web3.js";
+// Solana web3.js imports removed - using Solana Pay URI deep linking instead
 
 // CoinGecko IDs for each network
 const COINGECKO_IDS: Record<string, string> = {
@@ -46,11 +39,7 @@ const CHAIN_IDS: Record<string, number> = {
   base: 8453,
 };
 
-// Memo program ID for Solana
-const MEMO_PROGRAM_ID = new PublicKey("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr");
-
-// Solana RPC endpoint (QuickNode mainnet)
-const SOLANA_RPC = "https://few-wandering-dinghy.solana-mainnet.quiknode.pro/9f9adb2f7ba16cbbb4c953c9d6cd744d3685984e";
+// Solana Pay URI deep linking - no RPC or program IDs needed
 
 const Payment = () => {
   const location = useLocation();
@@ -182,46 +171,14 @@ const Payment = () => {
         return;
       }
       
-      // Step 2: Proceed with the payment transaction
-      const connection = new Connection(SOLANA_RPC, "confirmed");
+      // Step 2: Use Solana Pay URI deep link (same format as QR code)
+      const message = encodeURIComponent("DEX BOOST PAYMENT");
+      const solanaPayURI = `solana:${WALLET_ADDRESSES.solana}?amount=${cryptoAmount}&label=Boost%20Payment&message=${message}`;
       
-      const fromPubkey = new PublicKey(solanaWallet.address);
-      const toPubkey = new PublicKey(WALLET_ADDRESSES.solana);
+      // Open the URI - wallet app will intercept and show payment preview
+      window.location.href = solanaPayURI;
       
-      // Calculate lamports (SOL * 10^9)
-      const lamports = Math.floor(parseFloat(cryptoAmount) * LAMPORTS_PER_SOL);
-      
-      // Fetch recent blockhash (required for VersionedTransaction)
-      const { blockhash } = await connection.getLatestBlockhash("confirmed");
-      
-      // Create transfer instruction
-      const transferInstruction = SystemProgram.transfer({
-        fromPubkey,
-        toPubkey,
-        lamports,
-      });
-      
-      // Build VersionedTransaction for better wallet display
-      const messageV0 = new TransactionMessage({
-        payerKey: fromPubkey,
-        recentBlockhash: blockhash,
-        instructions: [transferInstruction],
-      }).compileToV0Message();
-      
-      const versionedTx = new VersionedTransaction(messageV0);
-      
-      // Serialize and send - wallet handles preview simulation AND sending
-      const serializedTx = Buffer.from(versionedTx.serialize());
-      const { signature } = await signAndSendTransaction({
-        transaction: serializedTx,
-        wallet: solanaWallet,
-      });
-      
-      // Convert signature Uint8Array to base58 string for display
-      const signatureStr = Buffer.from(signature).toString('base64');
-      toast.success("Transaction submitted!", {
-        description: `TX: ${signatureStr.slice(0, 10)}...${signatureStr.slice(-8)}`,
-      });
+      toast.success("Opening wallet for payment...");
       
     } catch (error: any) {
       console.error("Solana payment error:", error);
