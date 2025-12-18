@@ -178,15 +178,15 @@ const Payment = () => {
         })
       );
       
-      // Serialize the transaction
+      // Serialize the transaction - returns Buffer/Uint8Array
       const serializedTransaction = transaction.serialize({
         requireAllSignatures: false,
         verifySignatures: false,
       });
       
-      // Use Privy's signAndSendTransaction - wallet handles signing natively
+      // Use Privy's signAndSendTransaction with the serialized transaction
       const result = await signAndSendTransaction({
-        transaction: serializedTransaction,
+        transaction: new Uint8Array(serializedTransaction),
         wallet: solanaWallet,
       });
       
