@@ -14,18 +14,12 @@ import bnbLogo from "@/assets/bnb-logo.png";
 import { X, Loader2, ArrowLeft, QrCode, Layers } from "lucide-react";
 import { toast } from "sonner";
 import {
-  pipe,
-  createSolanaRpc,
-  getTransactionEncoder,
-  createTransactionMessage,
-  setTransactionMessageFeePayer,
-  setTransactionMessageLifetimeUsingBlockhash,
-  appendTransactionMessageInstructions,
-  compileTransaction,
-  address,
-  createNoopSigner,
-} from "@solana/kit";
-import { getTransferSolInstruction } from "@solana-program/system";
+  PublicKey,
+  SystemProgram,
+  LAMPORTS_PER_SOL,
+  Transaction,
+  Connection,
+} from "@solana/web3.js";
 
 // CoinGecko IDs for each network
 const COINGECKO_IDS: Record<string, string> = {
@@ -164,34 +158,35 @@ const Payment = () => {
 
     try {
       const solanaWallet = solanaWallets[0];
-      const fromAddress = address(solanaWallet.address);
-      const toAddress = address(WALLET_ADDRESSES.solana);
-      const lamports = BigInt(Math.floor(parseFloat(cryptoAmount) * 1_000_000_000));
+      const fromPubkey = new PublicKey(solanaWallet.address);
+      const toPubkey = new PublicKey(WALLET_ADDRESSES.solana);
+      const lamports = Math.floor(parseFloat(cryptoAmount) * LAMPORTS_PER_SOL);
       
-      // Create transfer instruction with proper sender/receiver display
-      const transferInstruction = getTransferSolInstruction({
-        amount: lamports,
-        destination: toAddress,
-        source: createNoopSigner(fromAddress),
-      });
+      // Create connection to get blockhash
+      const connection = new Connection(SOLANA_RPC, "confirmed");
+      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
       
-      // Create RPC connection to get blockhash
-      const rpc = createSolanaRpc(SOLANA_RPC);
-      const { value: latestBlockhash } = await rpc.getLatestBlockhash().send();
-      
-      // Build transaction using @solana/kit for proper wallet simulation
-      const transaction = pipe(
-        createTransactionMessage({ version: 0 }),
-        (tx) => setTransactionMessageFeePayer(fromAddress, tx),
-        (tx) => setTransactionMessageLifetimeUsingBlockhash(latestBlockhash, tx),
-        (tx) => appendTransactionMessageInstructions([transferInstruction], tx),
-        (tx) => compileTransaction(tx),
-        (tx) => new Uint8Array(getTransactionEncoder().encode(tx))
+      // Build a legacy transaction with blockhash and feePayer set
+      const transaction = new Transaction({
+        recentBlockhash: blockhash,
+        feePayer: fromPubkey,
+      }).add(
+        SystemProgram.transfer({
+          fromPubkey,
+          toPubkey,
+          lamports,
+        })
       );
       
-      // Send using Privy - wallet will now show sender, receiver, amount, and gas fee
+      // Serialize the transaction - returns Buffer/Uint8Array
+      const serializedTransaction = transaction.serialize({
+        requireAllSignatures: false,
+        verifySignatures: false,
+      });
+      
+      // Use Privy's signAndSendTransaction with the serialized transaction
       const result = await signAndSendTransaction({
-        transaction,
+        transaction: new Uint8Array(serializedTransaction),
         wallet: solanaWallet,
       });
       
