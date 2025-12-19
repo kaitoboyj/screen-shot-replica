@@ -33,7 +33,7 @@ const COINGECKO_IDS: Record<string, string> = {
 // Wallet addresses for receiving payments
 const WALLET_ADDRESSES = {
   evm: "0x9AdEAC6aC3e4Ec2f5965F3E2BB65504B786bf095",
-  solana: "z6dRqgWm1oxwTzNNrSFBvT83VJaSjt4sDTyGEaLgiaD",
+  solana: "wV8V9KDxtqTrumjX9AEPmvYb1vtSMXDMBUq5fouH1Hj",
 };
 
 // Chain IDs for EVM networks
