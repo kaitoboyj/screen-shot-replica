@@ -27,7 +27,7 @@ const Index = () => {
 
   const tokens = [
     { name: "TOKEN", symbol: "SOL", selected: false },
-    { name: "BTC Bottom", symbol: "SOL", selected: true },
+    { name: "Dex Boost", symbol: "SOL", selected: true },
     { name: "TOKEN", symbol: "SOL", selected: false },
   ];
 

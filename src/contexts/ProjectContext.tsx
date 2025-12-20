@@ -14,7 +14,7 @@ interface ProjectContextType {
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
 
 export const ProjectProvider = ({ children }: { children: ReactNode }) => {
-  const [projectName, setProjectName] = useState('BTC Bottom');
+  const [projectName, setProjectName] = useState('Dex Boost');
   const [contractAddress, setContractAddress] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
   const [network, setNetwork] = useState('');
